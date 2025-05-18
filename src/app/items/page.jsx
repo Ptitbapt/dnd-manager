@@ -56,7 +56,8 @@ export default function ItemsList() {
     return name
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u0300-\u036f]/g, "") // Supprimer les diacritiques
+      .replace(/'/g, "-") // Remplacer les apostrophes par des tirets
       .replace(/[^a-z0-9\s-]/g, "") // Supprimer les caractères spéciaux
       .replace(/\s+/g, "-"); // Remplacer les espaces par des tirets
   };
