@@ -1,7 +1,12 @@
-"use client";
 // app/shops/generate/page.jsx
+"use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import RaritySelector from "../../components/shops/RaritySelector";
+import TypeChanceSelector from "../../components/shops/TypeChanceSelector";
+import ShopDetailsForm from "../../components/shops/ShopDetailsForm";
+import ShopItemsTable from "../../components/shops/ShopItemsTable";
+import StatusMessage from "../../components/shops/StatusMessage";
 
 export default function GenerateShop() {
   const [types, setTypes] = useState([]);
@@ -151,8 +156,67 @@ export default function GenerateShop() {
     });
 
     setTotalPercentage(100);
-    setSuccess("Pourcentages normalisés à 100%");
-    setTimeout(() => setSuccess(""), 3000);
+  };
+
+  const randomizeRarities = () => {
+    const newItemsPerRarity = { ...shopConfig.itemsPerRarity };
+
+    // Générer des valeurs aléatoires pour chaque rareté
+    rarities.forEach((rarity) => {
+      // Plus la rareté est élevée, moins il y aura d'objets
+      if (rarity.toLowerCase().includes("commun")) {
+        newItemsPerRarity[rarity] = Math.floor(Math.random() * 6) + 3; // 3-8
+      } else if (rarity.toLowerCase().includes("peu commun")) {
+        newItemsPerRarity[rarity] = Math.floor(Math.random() * 4) + 1; // 1-4
+      } else if (rarity.toLowerCase().includes("rare")) {
+        newItemsPerRarity[rarity] = Math.floor(Math.random() * 3) + 0; // 0-2
+      } else if (rarity.toLowerCase().includes("très rare")) {
+        newItemsPerRarity[rarity] = Math.floor(Math.random() * 2); // 0-1
+      } else if (rarity.toLowerCase().includes("légendaire")) {
+        newItemsPerRarity[rarity] = Math.random() < 0.2 ? 1 : 0; // 20% de chance d'avoir 1, sinon 0
+      } else {
+        newItemsPerRarity[rarity] = Math.floor(Math.random() * 3); // 0-2
+      }
+    });
+
+    setShopConfig({
+      ...shopConfig,
+      itemsPerRarity: newItemsPerRarity,
+    });
+  };
+
+  const randomizeTypeChances = () => {
+    const newTypeChances = { ...shopConfig.typeChances };
+
+    if (types.length === 0) return;
+
+    // Générer des valeurs aléatoires pour chaque type
+    let total = 0;
+    types.forEach((type) => {
+      newTypeChances[type] = Math.floor(Math.random() * 30) + 5; // Entre 5 et 34
+      total += newTypeChances[type];
+    });
+
+    // Normaliser pour obtenir un total de 100%
+    types.forEach((type) => {
+      newTypeChances[type] = Math.floor((newTypeChances[type] / total) * 100);
+    });
+
+    // Ajuster pour obtenir exactement 100%
+    let newTotal = Object.values(newTypeChances).reduce(
+      (sum, val) => sum + val,
+      0
+    );
+    if (newTotal !== 100 && types.length > 0) {
+      newTypeChances[types[0]] += 100 - newTotal;
+    }
+
+    setShopConfig({
+      ...shopConfig,
+      typeChances: newTypeChances,
+    });
+
+    setTotalPercentage(100);
   };
 
   const generateShop = async () => {
@@ -252,55 +316,7 @@ export default function GenerateShop() {
       </div>
 
       <div className="card-body">
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6 animate-fadeIn">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {success && (
-          <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6 animate-fadeIn">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-green-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-green-700">{success}</p>
-              </div>
-            </div>
-          </div>
-        )}
+        <StatusMessage error={error} success={success} />
 
         <div className="mb-8">
           <h2 className="text-lg font-medieval text-medieval-wood mb-4 flex items-center">
@@ -322,174 +338,21 @@ export default function GenerateShop() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Objets par rareté */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-300">
-              <h3 className="text-md font-semibold mb-4 flex items-center border-b pb-2 border-amber-200">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-2 text-amber-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                Objets par rareté
-                <span className="ml-2 text-xs text-gray-500 font-normal">
-                  (nombre d'objets)
-                </span>
-              </h3>
+            <RaritySelector
+              rarities={rarities}
+              shopConfig={shopConfig}
+              onRarityChange={handleRarityChange}
+              onRandomize={randomizeRarities}
+            />
 
-              <div className="space-y-3">
-                {rarities.map((rarity) => (
-                  <div key={rarity} className="flex items-center">
-                    <span
-                      className={`w-8 h-8 rounded-full mr-3 flex items-center justify-center text-white ${
-                        rarity.toLowerCase().includes("commun")
-                          ? "bg-gray-500"
-                          : rarity.toLowerCase().includes("peu commun")
-                          ? "bg-green-500"
-                          : rarity.toLowerCase().includes("rare")
-                          ? "bg-blue-500"
-                          : rarity.toLowerCase().includes("très rare")
-                          ? "bg-purple-500"
-                          : rarity.toLowerCase().includes("légendaire")
-                          ? "bg-amber-500"
-                          : "bg-red-500"
-                      }`}
-                    >
-                      {shopConfig.itemsPerRarity[rarity] || 0}
-                    </span>
-                    <label
-                      htmlFor={`rarity-${rarity}`}
-                      className="text-sm font-medium text-gray-700 mr-auto"
-                    >
-                      {rarity}
-                    </label>
-                    <input
-                      type="range"
-                      id={`rarity-${rarity}`}
-                      value={shopConfig.itemsPerRarity[rarity] || 0}
-                      onChange={(e) =>
-                        handleRarityChange(rarity, e.target.value)
-                      }
-                      min="0"
-                      max="10"
-                      step="1"
-                      className="w-24 h-2 mx-2 rounded-lg appearance-none cursor-pointer bg-gray-200"
-                    />
-                    <input
-                      type="number"
-                      value={shopConfig.itemsPerRarity[rarity] || 0}
-                      onChange={(e) =>
-                        handleRarityChange(rarity, e.target.value)
-                      }
-                      min="0"
-                      max="20"
-                      className="form-input w-16 text-center"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 text-xs text-gray-500">
-                <p className="italic">
-                  Définissez combien d'objets de chaque rareté vous souhaitez
-                  avoir dans votre boutique.
-                </p>
-              </div>
-            </div>
-
-            {/* Chances de type */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-300">
-              <h3 className="text-md font-semibold mb-4 flex items-center justify-between border-b pb-2 border-amber-200">
-                <div className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2 text-amber-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
-                    />
-                  </svg>
-                  Chances de type
-                  <span className="ml-2 text-xs text-gray-500 font-normal">
-                    (pourcentages)
-                  </span>
-                </div>
-                <div
-                  className={`text-sm font-bold ${
-                    totalPercentage === 100 ? "text-green-500" : "text-red-500"
-                  }`}
-                >
-                  Total: {totalPercentage}%
-                </div>
-              </h3>
-
-              <div className="space-y-3">
-                {types.map((type) => (
-                  <div key={type} className="flex items-center">
-                    <div className="w-16 text-center font-medium">
-                      {shopConfig.typeChances[type] || 0}%
-                    </div>
-                    <div className="flex-grow mx-3 bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden">
-                      <div
-                        className="bg-amber-600 h-2.5 rounded-full"
-                        style={{
-                          width: `${shopConfig.typeChances[type] || 0}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <label
-                      htmlFor={`type-${type}`}
-                      className="text-sm font-medium text-gray-700 w-24"
-                    >
-                      {type}
-                    </label>
-                    <input
-                      type="number"
-                      id={`type-${type}`}
-                      value={shopConfig.typeChances[type] || 0}
-                      onChange={(e) =>
-                        handleTypeChanceChange(type, e.target.value)
-                      }
-                      min="0"
-                      max="100"
-                      className="form-input w-16 text-center"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 text-xs text-gray-500 italic">
-                <p>
-                  Les pourcentages déterminent la probabilité que chaque type
-                  d'objet apparaisse dans votre boutique. Le total doit être de
-                  100%.
-                </p>
-              </div>
-
-              <div className="mt-4 text-right">
-                <button
-                  type="button"
-                  className="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md text-sm hover:bg-amber-200 transition-colors"
-                  onClick={normalizePercentages}
-                >
-                  Normaliser à 100%
-                </button>
-              </div>
-            </div>
+            <TypeChanceSelector
+              types={types}
+              shopConfig={shopConfig}
+              onTypeChanceChange={handleTypeChanceChange}
+              onNormalize={normalizePercentages}
+              onRandomize={randomizeTypeChances}
+              totalPercentage={totalPercentage}
+            />
           </div>
 
           <div className="mt-8 flex justify-center">
@@ -569,175 +432,16 @@ export default function GenerateShop() {
               </span>
             </h2>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="shopName"
-                    className="form-label flex items-center"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-1 text-amber-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                      />
-                    </svg>
-                    Nom de la boutique <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="shopName"
-                    value={shopName}
-                    onChange={(e) => setShopName(e.target.value)}
-                    className="form-input"
-                    placeholder="L'Emporium Mystique"
-                  />
-                </div>
+            <ShopDetailsForm
+              shopName={shopName}
+              shopDescription={shopDescription}
+              onNameChange={setShopName}
+              onDescriptionChange={setShopDescription}
+              onSave={saveShop}
+              isSaving={isSaving}
+            />
 
-                <div>
-                  <label
-                    htmlFor="shopDescription"
-                    className="form-label flex items-center"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-1 text-amber-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    id="shopDescription"
-                    value={shopDescription}
-                    onChange={(e) => setShopDescription(e.target.value)}
-                    className="form-input"
-                    placeholder="Une boutique chaleureuse avec des objets magiques"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 text-right">
-                <button
-                  type="button"
-                  className="btn-primary flex items-center"
-                  onClick={saveShop}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Sauvegarde en cours...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 mr-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                        />
-                      </svg>
-                      Sauvegarder la boutique
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
-              <table className="medieval-table w-full">
-                <thead className="bg-amber-50">
-                  <tr>
-                    <th className="py-3">Nom</th>
-                    <th className="py-3">Type</th>
-                    <th className="py-3">Rareté</th>
-                    <th className="py-3">Valeur (PO)</th>
-                    <th className="py-3">Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shopItems.map((item, index) => (
-                    <tr
-                      key={item.IDX}
-                      className={index % 2 === 0 ? "bg-white" : "bg-amber-50"}
-                    >
-                      <td className="whitespace-nowrap py-3 px-4 text-sm font-medium text-gray-900">
-                        {item.Nomobjet}
-                      </td>
-                      <td className="whitespace-nowrap py-3 px-4 text-sm text-gray-700">
-                        <div className="flex items-center">
-                          <span className="inline-block w-3 h-3 rounded-full mr-2 bg-amber-500"></span>
-                          {item.Type}{" "}
-                          {item.Soustype ? `(${item.Soustype})` : ""}
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap py-3 px-4 text-sm text-gray-700">
-                        <span
-                          className={`rarity-badge rarity-${item.Rarete.toLowerCase().replace(
-                            " ",
-                            "-"
-                          )}`}
-                        >
-                          {item.Rarete}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap py-3 px-4 text-sm text-gray-700">
-                        {item.Valeur ? `${item.Valeur} PO` : "-"}
-                      </td>
-                      <td className="whitespace-nowrap py-3 px-4 text-sm text-gray-700">
-                        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                          {item.Source}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ShopItemsTable shopItems={shopItems} />
           </div>
         )}
       </div>
