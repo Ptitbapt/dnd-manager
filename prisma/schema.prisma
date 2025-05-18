@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../db_ITEMS.db"
+}
+
+model ITEMS {
+  IDX                 Int     @id @default(autoincrement())
+  Nomobjet            String  // Item name
+  Type                String  // Type
+  Soustype            String? // Subtype (optional)
+  Maitrise            String? // Proficiency (optional)
+  Rarete              String  // Rarity
+  Caractéristiques    String? // Characteristics (optional)
+  Valeur              Float?  // Value in gold pieces
+  Infosupplémentaire  String? // Additional info (optional)
+  Poids               String? // Weight (optional)
+  Source              String  // Source
+}
+
+model Shop {
+  id          Int      @id @default(autoincrement())
+  name        String   // Shop name
+  description String?  // Shop description (optional)
+  items       String   // List of item IDs in JSON format
+  createdAt   DateTime @default(now())
+}

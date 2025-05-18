@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DnD Shop Generator
+
+A Next.js application for Dungeon Masters to manage items and generate random shops for D&D sessions.
+
+## Features
+
+- Manage D&D items (add, edit, delete)
+- Generate random shops based on rarity and type distribution
+- Save and reload shop configurations
+- Responsive design for desktop and mobile
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 14.0 or later
+- SQLite Database (included)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repository
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   git clone https://github.com/yourusername/dnd-shop-generator.git
+   cd dnd-shop-generator
+   ```
 
-## Learn More
+2. Install dependencies
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Set up the database
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   npx prisma generate
+   ```
 
-## Deploy on Vercel
+4. Run the development server
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Project Structure
+
+- `/app` - Next.js application pages and API routes
+- `/components` - Reusable React components
+- `/lib` - Utility functions and database operations
+- `/prisma` - Database schema and configuration
+
+## Database Configuration
+
+The application uses SQLite via Prisma ORM. The existing database file (`db_ITEMS.db`) contains your D&D items data.
+
+## GitHub Setup
+
+To push your project to GitHub:
+
+1. Initialize a Git repository
+
+   ```bash
+   git init
+   ```
+
+2. Add all files to staging
+
+   ```bash
+   git add .
+   ```
+
+3. Commit your changes
+
+   ```bash
+   git commit -m "Initial commit"
+   ```
+
+4. Create a repository on GitHub and push your code
+   ```bash
+   git remote add origin https://github.com/yourusername/dnd-shop-generator.git
+   git push -u origin main
+   ```
+
+## Tech Stack
+
+- Next.js 14
+- Prisma (SQLite)
+- TailwindCSS
+- React
