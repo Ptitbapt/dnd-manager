@@ -1,74 +1,54 @@
 // app/api/shops/route.js
 import { NextResponse } from "next/server";
-import {
-  getAllShops,
-  getShopWithItems,
-  saveShop,
-  deleteShop,
-} from "../../lib/shopGenerator";
-
-export async function GET(request) {
-  try {
-    // Get parameters
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (id) {
-      // Get a specific shop with its items
-      const shop = await getShopWithItems(id);
-
-      if (!shop) {
-        return NextResponse.json({ error: "Shop not found" }, { status: 404 });
-      }
-
-      return NextResponse.json(shop);
-    } else {
-      // Get all shops
-      const shops = await getAllShops();
-      return NextResponse.json(shops);
-    }
-  } catch (error) {
-    console.error("Error fetching shops:", error);
-    return NextResponse.json(
-      { error: "Error fetching shops" },
-      { status: 500 }
-    );
-  }
-}
+import { saveShop, getAllShops } from "../../lib/shopGenerator";
 
 export async function POST(request) {
   try {
     const data = await request.json();
 
-    // Validate data
-    if (!data.name || !data.items || !Array.isArray(data.items)) {
+    if (!data.name || !data.name.trim()) {
       return NextResponse.json(
-        { error: "Missing data: name and items (array) are required" },
+        { error: "Le nom de la boutique est requis" },
         { status: 400 }
       );
     }
 
-    const shop = await saveShop(data.name, data.description || "", data.items);
-    return NextResponse.json(shop, { status: 201 });
+    if (!data.items || data.items.length === 0) {
+      return NextResponse.json(
+        { error: "La boutique doit contenir au moins un objet" },
+        { status: 400 }
+      );
+    }
+
+    const newShop = await saveShop(
+      data.name,
+      data.description || "",
+      data.items
+    );
+
+    return NextResponse.json({
+      success: true,
+      id: newShop.id,
+      message: "Boutique sauvegardée avec succès",
+    });
   } catch (error) {
-    console.error("Error saving shop:", error);
-    return NextResponse.json({ error: "Error saving shop" }, { status: 500 });
+    console.error("Erreur lors de la sauvegarde de la boutique:", error);
+    return NextResponse.json(
+      { error: "Erreur lors de la sauvegarde de la boutique" },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json({ error: "Missing shop ID" }, { status: 400 });
-    }
-
-    await deleteShop(id);
-    return NextResponse.json({ success: true });
+    const shops = await getAllShops();
+    return NextResponse.json(shops);
   } catch (error) {
-    console.error("Error deleting shop:", error);
-    return NextResponse.json({ error: "Error deleting shop" }, { status: 500 });
+    console.error("Erreur lors de la récupération des boutiques:", error);
+    return NextResponse.json(
+      { error: "Erreur lors de la récupération des boutiques" },
+      { status: 500 }
+    );
   }
 }

@@ -5,13 +5,6 @@ import Link from "next/link";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [language, setLanguage] = useState("fr"); // 'fr' par défaut
-
-  // Fonction pour changer de langue
-  const toggleLanguage = () => {
-    setLanguage(language === "fr" ? "en" : "fr");
-    // Ici, on pourrait également déclencher un changement global de langue dans l'application
-  };
 
   return (
     <header className="bg-gray-900 shadow-lg">
@@ -19,28 +12,34 @@ export default function Header() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-purple-500">
+              <Link href="/" className="text-xl font-bold text-indigo-400">
                 Générateur de Boutiques D&D
               </Link>
             </div>
             <div className="hidden sm:ml-10 sm:flex sm:space-x-8">
               <Link
                 href="/items"
-                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-purple-500"
+                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-indigo-500"
               >
                 Objets
               </Link>
               <Link
                 href="/shops/generate"
-                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-green-500"
+                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-indigo-500"
               >
                 Générer une Boutique
               </Link>
               <Link
                 href="/shops"
-                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-blue-500"
+                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-indigo-500"
               >
                 Boutiques Sauvegardées
+              </Link>
+              <Link
+                href="/presets"
+                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-indigo-500"
+              >
+                Présets de Boutique
               </Link>
             </div>
           </div>
@@ -86,24 +85,31 @@ export default function Header() {
           <div className="pt-2 pb-3 space-y-1">
             <Link
               href="/items"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 hover:border-purple-500"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 hover:border-indigo-500"
               onClick={() => setMobileMenuOpen(false)}
             >
               Objets
             </Link>
             <Link
               href="/shops/generate"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 hover:border-green-500"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 hover:border-indigo-500"
               onClick={() => setMobileMenuOpen(false)}
             >
               Générer une Boutique
             </Link>
             <Link
               href="/shops"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 hover:border-blue-500"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 hover:border-indigo-500"
               onClick={() => setMobileMenuOpen(false)}
             >
               Boutiques Sauvegardées
+            </Link>
+            <Link
+              href="/presets"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 hover:border-indigo-500"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Présets de Boutique
             </Link>
           </div>
         </div>

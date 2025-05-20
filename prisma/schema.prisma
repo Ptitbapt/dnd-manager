@@ -8,23 +8,36 @@ datasource db {
 }
 
 model ITEMS {
-  IDX                 Int     @id @default(autoincrement())
-  Nomobjet            String  // Item name
-  Type                String  // Type
-  Soustype            String? // Subtype (optional)
-  Maitrise            String? // Proficiency (optional)
-  Rarete              String  // Rarity
-  Caractéristiques    String? // Characteristics (optional)
-  Valeur              Float?  // Value in gold pieces
-  Infosupplémentaire  String? // Additional info (optional)
-  Poids               String? // Weight (optional)
-  Source              String  // Source
+  IDX                Int     @id @default(autoincrement())
+  Nomobjet           String?
+  Type               String?
+  Soustype           String?
+  Maitrise           String?
+  Rarete             String?
+  Caracteristiques   String?
+  Valeur             String?
+  Infosupplementaire String?
+  Poids              String?
+  Source             String?
 }
 
 model Shop {
   id          Int      @id @default(autoincrement())
-  name        String   // Shop name
-  description String?  // Shop description (optional)
-  items       String   // List of item IDs in JSON format
+  name        String
+  description String?
+  items       String
   createdAt   DateTime @default(now())
+}
+
+model ShopPreset {
+  id           Int      @id @default(autoincrement())
+  name         String
+  description  String?
+  wealthLevel  String   // "pauvre", "standard", "luxueux"
+  shopType     String   // "armurier", "magicien", "alchimiste", etc.
+  typeChances  Json     // Distribution des types d'objets en pourcentage
+  rarityConfig Json     // Configuration des objets par rareté
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  isDefault    Boolean  @default(false)  // Si c'est un preset par défaut ou créé par l'utilisateur
 }

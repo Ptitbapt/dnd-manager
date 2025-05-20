@@ -25,7 +25,7 @@ export default function HomePage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
+        <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50">
           <h1 className="text-2xl font-bold text-gray-900">
             Bienvenue sur le Générateur de Boutiques D&D
           </h1>
@@ -40,10 +40,10 @@ export default function HomePage() {
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
               <div className="px-5 py-4">
                 <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-purple-100 rounded-md p-3">
+                  <div className="flex-shrink-0 bg-indigo-100 rounded-md p-3">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6 text-purple-600"
+                      className="h-6 w-6 text-indigo-600"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -60,7 +60,7 @@ export default function HomePage() {
                     <h3 className="text-lg font-medium text-gray-900">
                       Objets dans la Base de Données
                     </h3>
-                    <p className="mt-1 text-3xl font-semibold text-purple-600">
+                    <p className="mt-1 text-3xl font-semibold text-indigo-600">
                       {stats.itemCount}
                     </p>
                   </div>
@@ -69,7 +69,7 @@ export default function HomePage() {
               <div className="px-5 py-3 bg-gray-50 border-t border-gray-200">
                 <Link
                   href="/items"
-                  className="text-sm font-medium text-purple-600 hover:text-purple-800 flex items-center"
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center"
                 >
                   Voir tous les objets
                   <svg
@@ -93,10 +93,10 @@ export default function HomePage() {
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
               <div className="px-5 py-4">
                 <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
+                  <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6 text-green-600"
+                      className="h-6 w-6 text-blue-600"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -113,7 +113,7 @@ export default function HomePage() {
                     <h3 className="text-lg font-medium text-gray-900">
                       Générer une Boutique
                     </h3>
-                    <p className="mt-1 text-3xl font-semibold text-green-600">
+                    <p className="mt-1 text-3xl font-semibold text-blue-600">
                       Créer
                     </p>
                   </div>
@@ -122,7 +122,7 @@ export default function HomePage() {
               <div className="px-5 py-3 bg-gray-50 border-t border-gray-200">
                 <Link
                   href="/shops/generate"
-                  className="text-sm font-medium text-green-600 hover:text-green-800 flex items-center"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center"
                 >
                   Configurer une boutique
                   <svg
@@ -167,7 +167,7 @@ export default function HomePage() {
                 <Link href="/items/add">
                   <button
                     type="button"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     <svg
                       className="-ml-1 mr-2 h-5 w-5"

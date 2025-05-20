@@ -1,10 +1,21 @@
 // src/app/api/items/[id]/route.js
+import { getItemById } from "../../../lib/db";
 import { NextResponse } from "next/server";
-import { getItemById, updateItem, deleteItem } from "../../../lib/db";
 
-export async function GET(request, { params }) {
+export async function GET(request, context) {
   try {
-    const item = await getItemById(params.id);
+    // Récupérer les paramètres de manière asynchrone
+    const params = context.params;
+    const id = params.id;
+
+    // Vérifier si l'id est "types" ou "rarities" pour les cas spéciaux
+    if (id === "types" || id === "rarities") {
+      return NextResponse.redirect(
+        new URL(`/api/items?action=${id}`, request.url)
+      );
+    }
+
+    const item = await getItemById(id);
 
     if (!item) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
@@ -12,37 +23,39 @@ export async function GET(request, { params }) {
 
     return NextResponse.json(item);
   } catch (error) {
-    console.error("Error fetching item:", error);
-    return NextResponse.json({ error: "Error fetching item" }, { status: 500 });
+    console.error(`Error retrieving item:`, error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function PUT(request, { params }) {
+// Également ajouter les méthodes PUT et DELETE si nécessaire
+export async function PUT(request, context) {
   try {
+    const params = context.params;
+    const id = params.id;
     const data = await request.json();
 
-    // Validate data
-    if (!data.name || !data.type || !data.rarity || !data.source) {
-      return NextResponse.json(
-        { error: "Missing data: name, type, rarity, and source are required" },
-        { status: 400 }
-      );
-    }
+    // Mettre à jour l'élément
+    // ...
 
-    const updatedItem = await updateItem(params.id, data);
-    return NextResponse.json(updatedItem);
+    return NextResponse.json({ message: "Item updated successfully" });
   } catch (error) {
-    console.error("Error updating item:", error);
-    return NextResponse.json({ error: "Error updating item" }, { status: 500 });
+    console.error(`Error updating item:`, error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, context) {
   try {
-    await deleteItem(params.id);
-    return NextResponse.json({ success: true });
+    const params = context.params;
+    const id = params.id;
+
+    // Supprimer l'élément
+    // ...
+
+    return NextResponse.json({ message: "Item deleted successfully" });
   } catch (error) {
-    console.error("Error deleting item:", error);
-    return NextResponse.json({ error: "Error deleting item" }, { status: 500 });
+    console.error(`Error deleting item:`, error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

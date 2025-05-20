@@ -10,6 +10,8 @@ import { prisma } from "./db";
  * @returns {Promise<Array>} Liste d'objets générée pour la boutique
  */
 export async function generateShop(config) {
+  console.log("Génération de boutique avec la configuration:", config);
+
   // Configuration par défaut
   const defaultConfig = {
     itemsPerRarity: {
@@ -46,15 +48,23 @@ export async function generateShop(config) {
     const count = shopConfig.itemsPerRarity[rarity];
 
     if (count > 0) {
-      const items = await selectItemsByRarityAndType(
-        rarity,
-        count,
-        shopConfig.typeChances
-      );
-      shopItems.push(...items);
+      try {
+        const items = await selectItemsByRarityAndType(
+          rarity,
+          count,
+          shopConfig.typeChances
+        );
+        shopItems.push(...items);
+      } catch (error) {
+        console.error(
+          `Erreur lors de la sélection d'objets pour la rareté ${rarity}:`,
+          error
+        );
+      }
     }
   }
 
+  console.log(`Boutique générée avec ${shopItems.length} objets`);
   return shopItems;
 }
 
@@ -73,8 +83,13 @@ async function selectItemsByRarityAndType(rarity, count, typeChances) {
   });
 
   if (itemsByRarity.length === 0) {
+    console.log(`Aucun objet trouvé pour la rareté: ${rarity}`);
     return [];
   }
+
+  console.log(
+    `${itemsByRarity.length} objets trouvés pour la rareté: ${rarity}`
+  );
 
   const selectedItems = [];
   const selectedIds = new Set(); // Pour éviter les doublons
@@ -122,6 +137,9 @@ async function selectItemsByRarityAndType(rarity, count, typeChances) {
     }
   }
 
+  console.log(
+    `${selectedItems.length} objets sélectionnés pour la rareté: ${rarity}`
+  );
   return selectedItems;
 }
 
@@ -146,33 +164,65 @@ function selectRandomType(typeChances) {
   return Object.keys(typeChances)[0];
 }
 
-// Stockage simple en mémoire pour les boutiques jusqu'à ce que nous ayons une table de boutiques appropriée dans la base de données
-const inMemoryShops = [];
-let shopIdCounter = 1;
-
 /**
- * Sauvegarde une boutique générée
+ * Sauvegarde une boutique générée avec une meilleure gestion des erreurs
  *
  * @param {string} name Nom de la boutique
  * @param {string} description Description de la boutique
- * @param {Array} items Liste des objets de la boutique
+ * @param {Array} items Liste des objets de la boutique (peut être un tableau d'objets ou d'IDs)
  * @returns {Promise<Object>} La boutique sauvegardée
  */
 export async function saveShop(name, description, items) {
-  // Extraire uniquement les ID des objets pour le stockage
-  const itemIds = items.map((item) => item.IDX);
-
-  // Créer une nouvelle boutique en mémoire
-  const newShop = {
-    id: shopIdCounter++,
+  console.log("Début de la sauvegarde de la boutique:", {
     name,
     description,
-    items: JSON.stringify(itemIds),
-    createdAt: new Date(),
-  };
+    itemsCount: items.length,
+  });
 
-  inMemoryShops.push(newShop);
-  return newShop;
+  try {
+    // Validation des entrées
+    if (!name || name.trim() === "") {
+      console.error("Erreur: Nom de boutique manquant");
+      throw new Error("Le nom de la boutique est obligatoire");
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      console.error("Erreur: Liste d'objets invalide", items);
+      throw new Error("La liste des objets ne peut pas être vide");
+    }
+
+    // Extraire uniquement les ID des objets pour le stockage
+    const itemIds = items.map((item) => {
+      // Si c'est déjà un nombre
+      if (typeof item === "number") {
+        return item;
+      }
+      // Si c'est un objet avec IDX
+      if (item && typeof item === "object" && "IDX" in item) {
+        return Number(item.IDX);
+      }
+      // Par défaut, considérer comme un ID
+      return Number(item);
+    });
+
+    console.log("IDs d'objets formatés:", itemIds);
+
+    // Créer une nouvelle boutique dans la base de données
+    const newShop = await prisma.shop.create({
+      data: {
+        name: name.trim(),
+        description: description ? description.trim() : "",
+        items: JSON.stringify(itemIds),
+        createdAt: new Date(),
+      },
+    });
+
+    console.log("Boutique sauvegardée avec succès:", newShop);
+    return newShop;
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde de la boutique:", error);
+    throw error; // Propager l'erreur pour la gérer dans l'API
+  }
 }
 
 /**
@@ -182,24 +232,50 @@ export async function saveShop(name, description, items) {
  * @returns {Promise<Object>} La boutique avec ses objets
  */
 export async function getShopWithItems(shopId) {
-  const shop = inMemoryShops.find((shop) => shop.id === Number(shopId));
+  console.log(`Récupération de la boutique avec ID: ${shopId}`);
 
-  if (!shop) {
-    return null;
+  try {
+    const shop = await prisma.shop.findUnique({
+      where: { id: Number(shopId) },
+    });
+
+    if (!shop) {
+      console.log(`Boutique avec ID ${shopId} non trouvée`);
+      return null;
+    }
+
+    console.log(`Boutique trouvée:`, shop);
+
+    // Récupérer les objets à partir des ID stockés
+    let itemIds;
+    try {
+      itemIds = JSON.parse(shop.items);
+    } catch (error) {
+      console.error(`Erreur lors du parsing des IDs d'objets:`, error);
+      itemIds = [];
+    }
+
+    console.log(`Récupération de ${itemIds.length} objets...`);
+
+    const items = await prisma.iTEMS.findMany({
+      where: {
+        IDX: { in: itemIds.map((id) => Number(id)) },
+      },
+    });
+
+    console.log(`${items.length} objets récupérés`);
+
+    return {
+      ...shop,
+      items,
+    };
+  } catch (error) {
+    console.error(
+      `Erreur lors de la récupération de la boutique ${shopId}:`,
+      error
+    );
+    throw error;
   }
-
-  // Récupérer les objets à partir des ID stockés
-  const itemIds = JSON.parse(shop.items);
-  const items = await prisma.iTEMS.findMany({
-    where: {
-      IDX: { in: itemIds.map((id) => Number(id)) },
-    },
-  });
-
-  return {
-    ...shop,
-    items,
-  };
 }
 
 /**
@@ -208,9 +284,21 @@ export async function getShopWithItems(shopId) {
  * @returns {Promise<Array>} Liste des boutiques
  */
 export async function getAllShops() {
-  return inMemoryShops.sort(
-    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-  );
+  console.log("Récupération de toutes les boutiques");
+
+  try {
+    const shops = await prisma.shop.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    console.log(`${shops.length} boutiques récupérées`);
+    return shops;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des boutiques:", error);
+    throw error;
+  }
 }
 
 /**
@@ -220,12 +308,22 @@ export async function getAllShops() {
  * @returns {Promise<Object>} Résultat de la suppression
  */
 export async function deleteShop(shopId) {
-  const index = inMemoryShops.findIndex((shop) => shop.id === Number(shopId));
+  console.log(`Tentative de suppression de la boutique avec ID: ${shopId}`);
 
-  if (index === -1) {
-    throw new Error("Boutique non trouvée");
+  try {
+    await prisma.shop.delete({
+      where: { id: Number(shopId) },
+    });
+
+    console.log(`Boutique avec ID ${shopId} supprimée avec succès`);
+    return { success: true };
+  } catch (error) {
+    console.error(
+      `Erreur lors de la suppression de la boutique ${shopId}:`,
+      error
+    );
+    throw new Error(
+      `Erreur lors de la suppression de la boutique: ${error.message}`
+    );
   }
-
-  inMemoryShops.splice(index, 1);
-  return { success: true };
 }

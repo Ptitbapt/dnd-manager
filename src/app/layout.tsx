@@ -1,12 +1,17 @@
 // src/app/layout.tsx
 import "./globals.css";
 import Header from "./components/Header";
+import { initializeApp } from "./lib/initApp";
 
 export const metadata = {
   title: "Générateur de Boutiques D&D",
   description:
     "Application pour gérer les objets et générer des boutiques aléatoires pour vos sessions de Donjons et Dragons",
 };
+
+initializeApp().catch((error) => {
+  console.error("Erreur lors de l'initialisation de l'application:", error);
+});
 
 export default function RootLayout({
   children,
@@ -24,7 +29,7 @@ export default function RootLayout({
               <div className="flex items-center space-x-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-purple-500"
+                  className="h-5 w-5 text-indigo-500"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >

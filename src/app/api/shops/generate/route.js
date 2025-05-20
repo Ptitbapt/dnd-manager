@@ -1,38 +1,30 @@
 // app/api/shops/generate/route.js
 import { NextResponse } from "next/server";
-import { generateShop, saveShop } from "../../../lib/shopGenerator";
+import { generateShop } from "../../../lib/shopGenerator";
 
 export async function POST(request) {
   try {
-    const data = await request.json();
+    const config = await request.json();
 
-    // Validate configuration
-    if (!data.itemsPerRarity || !data.typeChances) {
+    // Validation des paramètres
+    if (!config.itemsPerRarity || !config.typeChances) {
       return NextResponse.json(
-        {
-          error:
-            "Incomplete configuration: itemsPerRarity and typeChances are required",
-        },
+        { error: "Configuration de génération invalide" },
         { status: 400 }
       );
     }
 
-    // Generate the shop
-    const shopItems = await generateShop({
-      itemsPerRarity: data.itemsPerRarity,
-      typeChances: data.typeChances,
+    // Génération des objets de la boutique
+    const items = await generateShop(config);
+
+    return NextResponse.json({
+      success: true,
+      items,
     });
-
-    // Save the shop if requested
-    if (data.save && data.name) {
-      await saveShop(data.name, data.description || "", shopItems);
-    }
-
-    return NextResponse.json({ success: true, items: shopItems });
   } catch (error) {
-    console.error("Error generating shop:", error);
+    console.error("Erreur lors de la génération de la boutique:", error);
     return NextResponse.json(
-      { error: "Error generating shop" },
+      { error: "Erreur lors de la génération de la boutique" },
       { status: 500 }
     );
   }

@@ -1,4 +1,5 @@
-// lib/db.js - version corrigée pour les valeurs décimales
+// src/app/lib/db.js - Fichier complet modifié
+
 import { PrismaClient } from "@prisma/client";
 
 // Avoid creating multiple Prisma instances in development
@@ -27,18 +28,7 @@ export async function initDatabase() {
  * Get all items from the database
  */
 export async function getAllItems() {
-  // Utiliser une requête SQL directe pour récupérer les données
-  // cela contourne le problème de conversion des types
-  const items = await prisma.$queryRaw`SELECT * FROM ITEMS`;
-
-  // Conversion manuelle des valeurs décimales
-  return items.map((item) => ({
-    ...item,
-    // Convertir manuellement la valeur en nombre si elle existe
-    Valeur: item.Valeur
-      ? parseFloat(String(item.Valeur).replace(",", "."))
-      : null,
-  }));
+  return await prisma.iTEMS.findMany();
 }
 
 /**
@@ -46,18 +36,9 @@ export async function getAllItems() {
  * @param {number} id - The ID of the item to retrieve
  */
 export async function getItemById(id) {
-  const item = await prisma.$queryRaw`SELECT * FROM ITEMS WHERE IDX = ${Number(
-    id
-  )}`;
-  if (item && item.length > 0) {
-    return {
-      ...item[0],
-      Valeur: item[0].Valeur
-        ? parseFloat(String(item[0].Valeur).replace(",", "."))
-        : null,
-    };
-  }
-  return null;
+  return await prisma.iTEMS.findUnique({
+    where: { IDX: Number(id) },
+  });
 }
 
 /**
@@ -65,13 +46,6 @@ export async function getItemById(id) {
  * @param {Object} item - The item to add
  */
 export async function createItem(item) {
-  // S'assurer que la valeur est au format correct pour SQLite
-  let valeur = null;
-  if (item.value) {
-    // Convertir en string, remplacer la virgule par un point et convertir en float
-    valeur = parseFloat(String(item.value).replace(",", "."));
-  }
-
   return await prisma.iTEMS.create({
     data: {
       Nomobjet: item.name,
@@ -80,7 +54,7 @@ export async function createItem(item) {
       Maitrise: item.proficiency || null,
       Rarete: item.rarity,
       Caractéristiques: item.characteristics || null,
-      Valeur: valeur,
+      Valeur: item.value ? parseFloat(item.value) : null,
       Infosupplémentaire: item.additionalInfo || null,
       Poids: item.weight || null,
       Source: item.source,
@@ -94,13 +68,6 @@ export async function createItem(item) {
  * @param {Object} item - The new item data
  */
 export async function updateItem(id, item) {
-  // S'assurer que la valeur est au format correct pour SQLite
-  let valeur = null;
-  if (item.value) {
-    // Convertir en string, remplacer la virgule par un point et convertir en float
-    valeur = parseFloat(String(item.value).replace(",", "."));
-  }
-
   return await prisma.iTEMS.update({
     where: { IDX: Number(id) },
     data: {
@@ -110,7 +77,7 @@ export async function updateItem(id, item) {
       Maitrise: item.proficiency || null,
       Rarete: item.rarity,
       Caractéristiques: item.characteristics || null,
-      Valeur: valeur,
+      Valeur: item.value ? parseFloat(item.value) : null,
       Infosupplémentaire: item.additionalInfo || null,
       Poids: item.weight || null,
       Source: item.source,
@@ -129,12 +96,11 @@ export async function deleteItem(id) {
 }
 
 /**
- * Get statistics about items
+ * Get statistics about items and shops
  */
 export async function getStats() {
   const itemCount = await prisma.iTEMS.count();
-  // La table Shop n'existe pas encore, donc on retourne 0 pour shopCount
-  const shopCount = 0;
+  const shopCount = await prisma.shop.count();
 
   return {
     itemCount,
@@ -146,20 +112,76 @@ export async function getStats() {
  * Get all unique item types
  */
 export async function getUniqueTypes() {
-  const items = await prisma.iTEMS.findMany({
-    select: { Type: true },
-    distinct: ["Type"],
-  });
-  return items.map((item) => item.Type);
+  try {
+    console.log("Appel à getUniqueTypes");
+    const items = await prisma.iTEMS.findMany({
+      select: { Type: true },
+      distinct: ["Type"],
+      where: {
+        // Exclure les valeurs null ou vides
+        Type: {
+          not: null,
+          notIn: ["", " "],
+        },
+      },
+    });
+
+    // Extraire et filtrer les types
+    const types = items
+      .map((item) => item.Type)
+      .filter((type) => type && type.trim() !== ""); // Éliminer les types vides
+
+    console.log(`${types.length} types uniques trouvés:`, types);
+
+    // Si aucun type n'est trouvé, retourner des valeurs par défaut
+    if (types.length === 0) {
+      console.log("Aucun type trouvé, retour des valeurs par défaut");
+      return ["Arme", "Armure", "Équipement", "Objet merveilleux", "Potion"];
+    }
+
+    return types;
+  } catch (error) {
+    console.error("Erreur dans getUniqueTypes:", error);
+    // En cas d'erreur, retourner des types par défaut
+    return ["Arme", "Armure", "Équipement", "Objet merveilleux", "Potion"];
+  }
 }
 
 /**
  * Get all unique item rarities
  */
 export async function getUniqueRarities() {
-  const items = await prisma.iTEMS.findMany({
-    select: { Rarete: true },
-    distinct: ["Rarete"],
-  });
-  return items.map((item) => item.Rarete);
+  try {
+    console.log("Appel à getUniqueRarities");
+    const items = await prisma.iTEMS.findMany({
+      select: { Rarete: true },
+      distinct: ["Rarete"],
+      where: {
+        // Exclure les valeurs null ou vides
+        Rarete: {
+          not: null,
+          notIn: ["", " "],
+        },
+      },
+    });
+
+    // Extraire et filtrer les raretés
+    const rarities = items
+      .map((item) => item.Rarete)
+      .filter((rarity) => rarity && rarity.trim() !== ""); // Éliminer les raretés vides
+
+    console.log(`${rarities.length} raretés uniques trouvées:`, rarities);
+
+    // Si aucune rareté n'est trouvée, retourner des valeurs par défaut
+    if (rarities.length === 0) {
+      console.log("Aucune rareté trouvée, retour des valeurs par défaut");
+      return ["Commun", "Peu commun", "Rare", "Très rare", "Légendaire"];
+    }
+
+    return rarities;
+  } catch (error) {
+    console.error("Erreur dans getUniqueRarities:", error);
+    // En cas d'erreur, retourner des raretés par défaut
+    return ["Commun", "Peu commun", "Rare", "Très rare", "Légendaire"];
+  }
 }
