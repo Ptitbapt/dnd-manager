@@ -1,7 +1,7 @@
-// components/presets/PresetSelector.jsx
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { getWealthLevels, getShopTypes } from "../../lib/presetUtils";
 
 export default function PresetSelector({ onPresetSelect }) {
@@ -210,6 +210,33 @@ export default function PresetSelector({ onPresetSelect }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Bouton pour créer un nouveau preset */}
+          <Link href="/presets/add" className="no-underline">
+            <div className="border border-dashed border-indigo-300 rounded-lg p-3 cursor-pointer transition-all hover:shadow-md hover:border-indigo-500 flex flex-col items-center justify-center h-full min-h-32 bg-indigo-50 hover:bg-indigo-100">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10 text-indigo-500 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+              <h4 className="font-medium text-indigo-700">
+                Créer un nouveau preset
+              </h4>
+              <p className="text-sm text-indigo-500 text-center">
+                Définir une configuration personnalisée
+              </p>
+            </div>
+          </Link>
+
+          {/* Présets existants */}
           {filteredPresets.map((preset) => (
             <div
               key={preset.id}
