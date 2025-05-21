@@ -1,46 +1,64 @@
 /**
- * Utilitaires pour la génération de boutiques
+ * Utilitaires pour la génération et la gestion des boutiques - Version client-safe
  * Ce fichier contient des fonctions qui peuvent être utilisées côté client
  * sans dépendre directement de Prisma
  */
 
+// Cache pour réduire les requêtes réseau
+let typesCache = null;
+let raritiesCache = null;
+
+// Protection contre les appels multiples
+let isGenerating = false;
+let isSaving = false;
+
 /**
- * Récupère les types et raretés via l'API
- * @returns {Promise<Object>} { types, rarities }
+ * Récupère les types et raretés d'objets depuis l'API
+ * @returns {Promise<{types: string[], rarities: string[]}>}
  */
 export async function fetchTypesAndRarities() {
+  if (typesCache && raritiesCache) {
+    return { types: typesCache, rarities: raritiesCache };
+  }
+
   try {
-    // Récupérer les types
-    const typesResponse = await fetch("/api/items?action=types");
+    const typesResponse = await fetch("/api/items/types");
     if (!typesResponse.ok) {
       throw new Error(
-        `Erreur lors de la récupération des types: ${typesResponse.status}`
+        `Erreur lors de la récupération des types: ${typesResponse.statusText}`
       );
     }
 
-    // Récupérer les raretés
-    const raritiesResponse = await fetch("/api/items?action=rarities");
-    if (!raritiesResponse.ok) {
-      throw new Error(
-        `Erreur lors de la récupération des raretés: ${raritiesResponse.status}`
-      );
-    }
-
-    const typesData = await typesResponse.json();
-    const raritiesData = await raritiesResponse.json();
-
-    const types = Array.isArray(typesData.types) ? typesData.types : [];
-    const rarities = Array.isArray(raritiesData.rarities)
-      ? raritiesData.rarities
+    const typesResult = await typesResponse.json();
+    const typesData = Array.isArray(typesResult.types)
+      ? typesResult.types
+      : Array.isArray(typesResult)
+      ? typesResult
       : [];
 
-    return { types, rarities };
+    const raritiesResponse = await fetch("/api/items/rarities");
+    if (!raritiesResponse.ok) {
+      throw new Error(
+        `Erreur lors de la récupération des raretés: ${raritiesResponse.statusText}`
+      );
+    }
+
+    const raritiesResult = await raritiesResponse.json();
+    const raritiesData = Array.isArray(raritiesResult.rarities)
+      ? raritiesResult.rarities
+      : Array.isArray(raritiesResult)
+      ? raritiesResult
+      : [];
+
+    typesCache = typesData;
+    raritiesCache = raritiesData;
+
+    return { types: typesData, rarities: raritiesData };
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des types et raretés:",
       error
     );
-    // Retourner des valeurs par défaut en cas d'erreur
     return {
       types: [
         "Armes",
@@ -69,80 +87,94 @@ export async function fetchTypesAndRarities() {
 }
 
 /**
- * Génère des objets de boutique basés sur la configuration
- * @param {Object} config - Configuration de la boutique
- * @returns {Promise<Array>} Liste des objets générés
+ * Génère les objets d'une boutique en fonction de la configuration
+ * @param {Object} config
+ * @returns {Promise<Array>}
  */
 export async function generateShopItems(config) {
+  if (isGenerating) {
+    throw new Error("Génération déjà en cours");
+  }
+
   try {
+    isGenerating = true;
+
     const response = await fetch("/api/shops/generate", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(config),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Erreur ${response.status}`);
+      throw new Error(
+        errorData.error || "Erreur lors de la génération de la boutique"
+      );
     }
 
     const data = await response.json();
-    return data.items || [];
+
+    if (!data.success || !data.items) {
+      throw new Error("Réponse invalide de l'API");
+    }
+
+    return data.items;
   } catch (error) {
     console.error("Erreur lors de la génération des objets:", error);
     throw error;
+  } finally {
+    isGenerating = false;
   }
 }
 
 /**
  * Sauvegarde une boutique dans la base de données
- * @param {string} name - Nom de la boutique
- * @param {string} description - Description de la boutique
- * @param {Array} items - Liste des objets de la boutique
- * @returns {Promise<Object>} Boutique sauvegardée
+ * @param {string} name
+ * @param {string} description
+ * @param {Array} items
+ * @returns {Promise<Object>}
  */
 export async function saveShopToDatabase(name, description, items) {
+  if (isSaving) {
+    throw new Error("Sauvegarde déjà en cours");
+  }
+
   try {
+    isSaving = true;
+
     const response = await fetch("/api/shops", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        description,
-        items,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description, items }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Erreur ${response.status}`);
+      throw new Error(
+        errorData.error || "Erreur lors de la sauvegarde de la boutique"
+      );
     }
 
-    const data = await response.json();
-    return data.shop;
+    return await response.json();
   } catch (error) {
     console.error("Erreur lors de la sauvegarde de la boutique:", error);
     throw error;
+  } finally {
+    isSaving = false;
   }
 }
 
 /**
- * Ajoute un objet à une boutique
- * @param {number} shopId - ID de la boutique
- * @param {Object} item - Objet à ajouter
- * @returns {Promise<Object>} Boutique mise à jour
+ * Ajoute un objet à une boutique existante
+ * @param {number} shopId
+ * @param {Object} item
+ * @returns {Promise<Object>}
  */
 export async function addItemToShop(shopId, item) {
   try {
     const response = await fetch(`/api/shops/${shopId}/items`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ item }),
     });
 
@@ -161,9 +193,9 @@ export async function addItemToShop(shopId, item) {
 
 /**
  * Supprime un objet d'une boutique
- * @param {number} shopId - ID de la boutique
- * @param {number} itemId - ID de l'objet à supprimer
- * @returns {Promise<Object>} Boutique mise à jour
+ * @param {number} shopId
+ * @param {number} itemId
+ * @returns {Promise<Object>}
  */
 export async function removeItemFromShop(shopId, itemId) {
   try {
@@ -188,15 +220,13 @@ export async function removeItemFromShop(shopId, itemId) {
 }
 
 /**
- * Récupère les objets correspondant à certains critères
- * @param {Object} filters - Critères de recherche
- * @returns {Promise<Array>} Objets correspondants
+ * Récupère les objets en fonction de filtres
+ * @param {Object} filters
+ * @returns {Promise<Array>}
  */
 export async function searchItems(filters) {
   try {
-    // Construire l'URL avec les paramètres de recherche
     const queryParams = new URLSearchParams();
-
     if (filters.name) queryParams.append("name", filters.name);
     if (filters.type) queryParams.append("type", filters.type);
     if (filters.rarity) queryParams.append("rarity", filters.rarity);
@@ -217,20 +247,19 @@ export async function searchItems(filters) {
 }
 
 /**
- * Construit une URL pour la documentation AideDD d'un objet
- * @param {string} itemName - Nom de l'objet
- * @returns {string} URL formatée
+ * Construit l'URL vers la fiche AideDD d'un objet
+ * @param {string} itemName
+ * @returns {string}
  */
 export function buildAideDDUrl(itemName) {
   if (!itemName) return "#";
 
-  // Normaliser le nom pour l'URL
   const normalizedName = itemName
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Supprimer les accents
-    .replace(/[^a-z0-9]+/g, "-") // Remplacer les caractères spéciaux par des tirets
-    .replace(/^-+|-+$/g, ""); // Supprimer les tirets en début et fin
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
   return `https://aidedd.org/dnd/om.php?vf=${normalizedName}`;
 }
@@ -257,5 +286,25 @@ export async function initializeDefaultPresets() {
       error
     );
     throw error;
+  }
+}
+
+/**
+ * Récupère toutes les boutiques
+ * @returns {Promise<Array>}
+ */
+export async function getAllShops() {
+  try {
+    const response = await fetch("/api/shops");
+    if (!response.ok) {
+      throw new Error(
+        `Erreur lors de la récupération des boutiques: ${response.statusText}`
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Erreur lors de la récupération des boutiques:", error);
+    return [];
   }
 }

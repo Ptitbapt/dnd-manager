@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ShopConfigSection from "../../components/shops/ShopConfigSelection";
 import ShopGeneratedSection from "../../components/shops/ShopGeneratedSection";
@@ -18,6 +18,9 @@ export default function GenerateShop() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const presetId = searchParams.get("preset");
+
+  // Ref pour prévenir les doubles clics
+  const isGeneratingRef = useRef(false);
 
   // États principaux
   const [shopConfig, setShopConfig] = useState({
@@ -208,6 +211,11 @@ export default function GenerateShop() {
 
   // Génération de la boutique
   const generateShop = async () => {
+    // Protection contre les doubles clics
+    if (isGeneratingRef.current || uiState.isGenerating) {
+      return;
+    }
+
     if (uiState.totalPercentage !== 100) {
       setMessages({
         error:
@@ -217,6 +225,8 @@ export default function GenerateShop() {
       return;
     }
 
+    // Marquer comme en cours de génération
+    isGeneratingRef.current = true;
     setUiState((prev) => ({ ...prev, isGenerating: true }));
     setMessages({ error: "", success: "" });
     setShopItems([]);
@@ -225,12 +235,6 @@ export default function GenerateShop() {
       const items = await generateShopItems(shopConfig);
 
       setShopItems(items);
-      setUiState((prev) => ({
-        ...prev,
-        isGenerating: false,
-        showItemSelector: true,
-      }));
-
       setMessages({ success: "Boutique générée avec succès !", error: "" });
       setTimeout(() => setMessages({ success: "", error: "" }), 3000);
 
@@ -245,7 +249,14 @@ export default function GenerateShop() {
         error: "Erreur lors de la génération: " + error.message,
         success: "",
       });
-      setUiState((prev) => ({ ...prev, isGenerating: false }));
+    } finally {
+      // Réinitialiser les états de génération
+      setUiState((prev) => ({
+        ...prev,
+        isGenerating: false,
+        showItemSelector: shopItems.length > 0,
+      }));
+      isGeneratingRef.current = false;
     }
   };
 
@@ -276,6 +287,11 @@ export default function GenerateShop() {
       return;
     }
 
+    // Protection contre les doubles soumissions
+    if (uiState.isSaving) {
+      return;
+    }
+
     setUiState((prev) => ({ ...prev, isSaving: true }));
     setMessages({ error: "", success: "" });
 
@@ -296,7 +312,6 @@ export default function GenerateShop() {
         error: "Erreur lors de la sauvegarde: " + error.message,
         success: "",
       });
-    } finally {
       setUiState((prev) => ({ ...prev, isSaving: false }));
     }
   };

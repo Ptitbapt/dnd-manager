@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getWealthLevels, getShopTypes } from "../../lib/presetUtils";
 import PresetHeader from "./PresetHeader";
@@ -16,6 +16,9 @@ export default function PresetForm({ preset, isEditMode = false }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [totalPercentage, setTotalPercentage] = useState(0);
+
+  // Ref pour éviter les soumissions multiples
+  const isSubmittingRef = useRef(false);
 
   // Options pour les sélecteurs
   const wealthLevels = getWealthLevels();
@@ -446,6 +449,12 @@ export default function PresetForm({ preset, isEditMode = false }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Vérifier si une soumission est déjà en cours
+    if (isSubmittingRef.current || isLoading) {
+      console.log("Soumission déjà en cours, ignorée");
+      return;
+    }
+
     // Vérifier que le total des pourcentages est 100%
     if (totalPercentage !== 100) {
       setError(
@@ -474,6 +483,9 @@ export default function PresetForm({ preset, isEditMode = false }) {
       setError("Le nom du preset est obligatoire");
       return;
     }
+
+    // Marquer comme en cours de soumission
+    isSubmittingRef.current = true;
     setIsLoading(true);
     setError("");
     setSuccess("");
@@ -518,7 +530,9 @@ export default function PresetForm({ preset, isEditMode = false }) {
     } catch (err) {
       console.error("Erreur lors de la sauvegarde:", err);
       setError(err.message || "Une erreur est survenue lors de la sauvegarde");
-    } finally {
+
+      // Réinitialiser l'état de soumission pour permettre de réessayer
+      isSubmittingRef.current = false;
       setIsLoading(false);
     }
   };

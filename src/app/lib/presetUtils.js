@@ -2,6 +2,22 @@
 import { prisma } from "./db";
 
 /**
+ * Normalise un texte pour la recherche (retire accents, caractères spéciaux, etc.)
+ * @param {String} text - Le texte à normaliser
+ * @returns {String} - Le texte normalisé
+ */
+export function normalizeText(text) {
+  if (!text) return "";
+
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Retirer les accents
+    .replace(/[^\w\s]/gi, "") // Retirer les caractères spéciaux
+    .replace(/\s+/g, ""); // Retirer les espaces
+}
+
+/**
  * Normalise un preset pour s'assurer que ses valeurs sont cohérentes
  * @param {Object} preset - Le preset à normaliser
  * @returns {Object} - Le preset normalisé

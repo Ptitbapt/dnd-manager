@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getWealthLevels, getShopTypes } from "../../lib/presetUtils";
+import {
+  getWealthLevels,
+  getShopTypes,
+  normalizeText,
+} from "../../lib/presetUtils";
 
 export default function PresetList() {
   const [presets, setPresets] = useState([]);
@@ -64,13 +68,14 @@ export default function PresetList() {
       filtered = filtered.filter((preset) => preset.shopType === typeFilter);
     }
 
+    // Filtre par recherche textuelle avec normalisation
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+      const normalizedQuery = normalizeText(searchQuery);
       filtered = filtered.filter(
         (preset) =>
-          preset.name.toLowerCase().includes(query) ||
+          normalizeText(preset.name).includes(normalizedQuery) ||
           (preset.description &&
-            preset.description.toLowerCase().includes(query))
+            normalizeText(preset.description).includes(normalizedQuery))
       );
     }
 

@@ -129,9 +129,14 @@ export default function ShopConfigSection({
         {/* Bouton Générer la boutique */}
         <button
           type="button"
-          className="bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 text-md rounded-lg shadow-sm hover:shadow-md transition-all flex items-center"
+          className={`${
+            isGenerating
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-indigo-500 hover:bg-indigo-600"
+          } text-white py-2 px-4 text-md rounded-lg shadow-sm hover:shadow-md transition-all flex items-center`}
           onClick={onGenerate}
           disabled={isGenerating}
+          aria-busy={isGenerating}
         >
           {isGenerating ? (
             <>
