@@ -14,6 +14,7 @@ export default function ShopsList() {
   const [shops, setShops] = useState([]);
   const [selectedShop, setSelectedShop] = useState(null);
   const [shopItems, setShopItems] = useState([]);
+  const [purchasedItems, setPurchasedItems] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [error, setError] = useState("");
@@ -43,6 +44,7 @@ export default function ShopsList() {
     setIsLoadingItems(true);
     setSelectedShop(shopId);
     setShopItems([]);
+    setPurchasedItems({}); // Réinitialiser les articles achetés
     setError("");
 
     try {
@@ -75,11 +77,31 @@ export default function ShopsList() {
         if (selectedShop === shopId) {
           setSelectedShop(null);
           setShopItems([]);
+          setPurchasedItems({});
         }
       } catch (error) {
         console.error("Erreur lors de la suppression de la boutique:", error);
         setError(`Erreur lors de la suppression: ${error.message}`);
       }
+    }
+  };
+
+  // Gérer l'achat d'un objet
+  const toggleItemPurchased = (itemId) => {
+    setPurchasedItems((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
+  };
+
+  // Réapprovisionner la boutique (réinitialiser tous les achats)
+  const restockShop = () => {
+    if (
+      confirm(
+        "Voulez-vous réapprovisionner la boutique ? Tous les objets marqués comme achetés seront réinitialisés."
+      )
+    ) {
+      setPurchasedItems({});
     }
   };
 
@@ -285,13 +307,37 @@ export default function ShopsList() {
       <div className="md:col-span-2">
         <div className="bg-white rounded-lg shadow-md border border-gray-200 h-full">
           <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50">
-            <h1 className="text-xl font-medium text-gray-800 flex items-center">
-              {itemsIcon}
-              {selectedShop
-                ? shops.find((shop) => shop.id === selectedShop)?.name ||
-                  "Objets de la boutique"
-                : "Sélectionner une boutique"}
-            </h1>
+            <div className="flex justify-between items-center">
+              <h1 className="text-xl font-medium text-gray-800 flex items-center">
+                {itemsIcon}
+                {selectedShop
+                  ? shops.find((shop) => shop.id === selectedShop)?.name ||
+                    "Objets de la boutique"
+                  : "Sélectionner une boutique"}
+              </h1>
+              {selectedShop && (
+                <button
+                  onClick={restockShop}
+                  className="bg-green-500 hover:bg-green-600 text-white py-1.5 px-3 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center text-sm"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Réapprovisionner
+                </button>
+              )}
+            </div>
             {selectedShop &&
               shops.find((shop) => shop.id === selectedShop)?.description && (
                 <p className="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-md border-l-4 border-indigo-300 ml-7">
@@ -347,8 +393,11 @@ export default function ShopsList() {
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
                         Valeur (PO)
                       </th>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-700 rounded-tr-lg">
+                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
                         Source
+                      </th>
+                      <th className="py-3 px-4 text-center text-sm font-medium text-gray-700 rounded-tr-lg">
+                        Acheté
                       </th>
                     </tr>
                   </thead>
@@ -356,24 +405,93 @@ export default function ShopsList() {
                     {shopItems.map((item, index) => (
                       <tr
                         key={item.IDX}
-                        className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                        className={`${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } ${purchasedItems[item.IDX] ? "opacity-60" : ""}`}
                       >
-                        <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                        <td
+                          className={`py-3 px-4 text-sm font-medium text-gray-900 ${
+                            purchasedItems[item.IDX] ? "line-through" : ""
+                          }`}
+                        >
                           <ItemLink name={item.Nomobjet} />
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-700">
+                        <td
+                          className={`py-3 px-4 text-sm text-gray-700 ${
+                            purchasedItems[item.IDX] ? "line-through" : ""
+                          }`}
+                        >
                           <TypeBadge type={item.Type} subtype={item.Soustype} />
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-700">
+                        <td
+                          className={`py-3 px-4 text-sm text-gray-700 ${
+                            purchasedItems[item.IDX] ? "line-through" : ""
+                          }`}
+                        >
                           <RarityBadge rarity={item.Rarete} />
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-700">
+                        <td
+                          className={`py-3 px-4 text-sm text-gray-700 ${
+                            purchasedItems[item.IDX] ? "line-through" : ""
+                          }`}
+                        >
                           {item.Valeur ? `${item.Valeur} PO` : "-"}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-700">
+                        <td
+                          className={`py-3 px-4 text-sm text-gray-700 ${
+                            purchasedItems[item.IDX] ? "line-through" : ""
+                          }`}
+                        >
                           <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
                             {item.Source}
                           </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={() => toggleItemPurchased(item.IDX)}
+                            className={`p-1.5 rounded-full transition-colors ${
+                              purchasedItems[item.IDX]
+                                ? "bg-green-100 text-green-600 hover:bg-green-200"
+                                : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                            }`}
+                            title={
+                              purchasedItems[item.IDX]
+                                ? "Marquer comme disponible"
+                                : "Marquer comme acheté"
+                            }
+                          >
+                            {purchasedItems[item.IDX] ? (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                                />
+                              </svg>
+                            )}
+                          </button>
                         </td>
                       </tr>
                     ))}
