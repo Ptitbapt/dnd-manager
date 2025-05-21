@@ -452,7 +452,7 @@ export default function ShopsList() {
                             className={`p-1.5 rounded-full transition-colors ${
                               purchasedItems[item.IDX]
                                 ? "bg-green-100 text-green-600 hover:bg-green-200"
-                                : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                                : "bg-blue-100 text-blue-400 hover:bg-blue-200"
                             }`}
                             title={
                               purchasedItems[item.IDX]
