@@ -31,9 +31,26 @@ export default function PresetSelector({ onPresetSelect }) {
           throw new Error(`Erreur ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        setPresets(data.presets);
-        setFilteredPresets(data.presets);
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          console.error("Erreur parsing JSON:", e);
+          throw new Error("Format de réponse invalide");
+        }
+
+        // Vérifier et normaliser les présets
+        if (!data.presets || !Array.isArray(data.presets)) {
+          console.error("Format de présets invalide:", data);
+          throw new Error("Format de présets invalide");
+        }
+
+        // Les présets sont déjà normalisés par l'API, mais on applique quand même
+        // notre propre normalisation pour être sûr
+        const normalizedPresets = data.presets.map(normalizePreset);
+
+        setPresets(normalizedPresets);
+        setFilteredPresets(normalizedPresets);
       } catch (err) {
         console.error("Erreur lors du chargement des présets:", err);
         setError(
@@ -46,6 +63,121 @@ export default function PresetSelector({ onPresetSelect }) {
 
     loadPresets();
   }, []);
+
+  // Fonction pour normaliser un preset
+  const normalizePreset = (preset) => {
+    // Copie de base du preset
+    const normalizedPreset = { ...preset };
+
+    // Vérification et normalisation de typeChances
+    if (!normalizedPreset.typeChances) {
+      normalizedPreset.typeChances = {};
+    } else if (typeof normalizedPreset.typeChances === "string") {
+      try {
+        normalizedPreset.typeChances = JSON.parse(normalizedPreset.typeChances);
+      } catch (e) {
+        console.error(
+          `Erreur parsing typeChances pour preset ${preset.id}:`,
+          e
+        );
+        normalizedPreset.typeChances = {};
+      }
+    }
+
+    // Vérification et normalisation de rarityConfig
+    if (!normalizedPreset.rarityConfig) {
+      normalizedPreset.rarityConfig = {};
+    } else if (typeof normalizedPreset.rarityConfig === "string") {
+      try {
+        normalizedPreset.rarityConfig = JSON.parse(
+          normalizedPreset.rarityConfig
+        );
+      } catch (e) {
+        console.error(
+          `Erreur parsing rarityConfig pour preset ${preset.id}:`,
+          e
+        );
+        normalizedPreset.rarityConfig = {};
+      }
+    }
+
+    // S'assurer que toutes les valeurs sont des nombres positifs
+    // et calculer le total actuel des pourcentages
+    let totalTypeChances = 0;
+    Object.keys(normalizedPreset.typeChances).forEach((key) => {
+      const value = Math.max(
+        0,
+        parseInt(normalizedPreset.typeChances[key]) || 0
+      );
+      normalizedPreset.typeChances[key] = value;
+      totalTypeChances += value;
+    });
+
+    Object.keys(normalizedPreset.rarityConfig).forEach((key) => {
+      normalizedPreset.rarityConfig[key] = Math.max(
+        0,
+        parseInt(normalizedPreset.rarityConfig[key]) || 0
+      );
+    });
+
+    // Normalisation des pourcentages pour qu'ils totalisent 100%
+    if (
+      totalTypeChances !== 100 &&
+      totalTypeChances > 0 &&
+      Object.keys(normalizedPreset.typeChances).length > 0
+    ) {
+      // Ajuster pour que le total soit exactement 100%
+      console.log(
+        `Normalisation du preset ${preset.id} - Total actuel: ${totalTypeChances}%`
+      );
+
+      // Calculer un facteur d'échelle pour ramener à 100%
+      const factor = 100 / totalTypeChances;
+      let newTotal = 0;
+      const keys = Object.keys(normalizedPreset.typeChances);
+
+      // Premier passage: ajuster toutes les valeurs sauf la dernière
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        const adjustedValue = Math.round(
+          normalizedPreset.typeChances[key] * factor
+        );
+        normalizedPreset.typeChances[key] = adjustedValue;
+        newTotal += adjustedValue;
+      }
+
+      // Dernier élément: assigner ce qui reste pour atteindre exactement 100%
+      const lastKey = keys[keys.length - 1];
+      normalizedPreset.typeChances[lastKey] = 100 - newTotal;
+
+      console.log(`Normalisation terminée - Nouveau total: 100%`);
+    } else if (
+      totalTypeChances === 0 &&
+      Object.keys(normalizedPreset.typeChances).length > 0
+    ) {
+      // Si le total est 0 mais qu'il y a des types, faire une distribution égale
+      console.log(
+        `Distribution égale pour le preset ${preset.id} - Total actuel: 0%`
+      );
+
+      const keys = Object.keys(normalizedPreset.typeChances);
+      const baseValue = Math.floor(100 / keys.length);
+      let remaining = 100;
+
+      // Premier passage: donner une valeur égale à tous sauf le dernier
+      for (let i = 0; i < keys.length - 1; i++) {
+        normalizedPreset.typeChances[keys[i]] = baseValue;
+        remaining -= baseValue;
+      }
+
+      // Dernier élément: assigner ce qui reste
+      normalizedPreset.typeChances[keys[keys.length - 1]] = remaining;
+
+      console.log(`Distribution égale terminée - Nouveau total: 100%`);
+    }
+
+    return normalizedPreset;
+  };
 
   // Filtrer les présets lorsque les filtres changent
   useEffect(() => {
@@ -66,11 +198,22 @@ export default function PresetSelector({ onPresetSelect }) {
     setFilteredPresets(filtered);
   }, [wealthFilter, typeFilter, presets]);
 
-  // Gestionnaire de sélection de préset
+  // Gestionnaire de sélection de preset
   const handlePresetSelect = (preset) => {
-    setSelectedPreset(preset);
+    const normalizedPreset = normalizePreset(preset);
+
+    // Vérifier que les pourcentages totalisent bien 100%
+    const total = Object.values(normalizedPreset.typeChances).reduce(
+      (sum, val) => sum + val,
+      0
+    );
+
+    console.log(`Sélection du preset ${preset.id} avec un total de ${total}%`);
+
+    setSelectedPreset(normalizedPreset);
+
     if (onPresetSelect) {
-      onPresetSelect(preset);
+      onPresetSelect(normalizedPreset);
     }
   };
 

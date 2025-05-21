@@ -1,6 +1,6 @@
 // src/app/layout.tsx
 import "./globals.css";
-import Header from "./components/Header";
+import Header from "./Header";
 import { initializeApp } from "./lib/initApp";
 
 export const metadata = {

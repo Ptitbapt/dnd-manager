@@ -135,6 +135,7 @@ export const getTypeColor = (type) => {
     if (typeLower.includes("baguette")) return "bg-blue-500";
     if (typeLower.includes("anneau")) return "bg-pink-500";
     if (typeLower.includes("bâton")) return "bg-green-500";
+    if (typeLower.includes("sceptre")) return "bg-orange-500";
 
     return "bg-indigo-500"; // Valeur par défaut
   } catch (error) {

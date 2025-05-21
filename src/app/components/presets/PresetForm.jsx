@@ -1,5 +1,3 @@
-// Correction complète du composant PresetForm.jsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -57,8 +55,18 @@ export default function PresetForm({ preset, isEditMode = false }) {
         console.log("Types chargés:", typesData);
         console.log("Raretés chargées:", raritiesData);
 
-        const types = typesData.types || [];
-        const rarities = raritiesData.rarities || [];
+        // S'assurer que nous avons bien des tableaux
+        const types = Array.isArray(typesData.types)
+          ? typesData.types
+          : Array.isArray(typesData)
+          ? typesData
+          : [];
+
+        const rarities = Array.isArray(raritiesData.rarities)
+          ? raritiesData.rarities
+          : Array.isArray(raritiesData)
+          ? raritiesData
+          : [];
 
         setAvailableTypes(types);
         setAvailableRarities(rarities);
@@ -123,7 +131,59 @@ export default function PresetForm({ preset, isEditMode = false }) {
         }
       }
 
-      // Création d'une copie complète des données du preset
+      // S'assurer que toutes les valeurs sont des nombres
+      if (typeChances) {
+        Object.keys(typeChances).forEach((key) => {
+          typeChances[key] = parseInt(typeChances[key]) || 0;
+        });
+      }
+
+      if (rarityConfig) {
+        Object.keys(rarityConfig).forEach((key) => {
+          rarityConfig[key] = parseInt(rarityConfig[key]) || 0;
+        });
+      }
+
+      // Normaliser les pourcentages pour qu'ils totalisent 100%
+      let total = 0;
+      if (typeChances) {
+        total = Object.values(typeChances).reduce(
+          (sum, value) => sum + (parseInt(value) || 0),
+          0
+        );
+
+        if (total !== 100 && total > 0 && Object.keys(typeChances).length > 0) {
+          console.log(
+            `Le total des pourcentages est ${total}%, normalisation à 100%`
+          );
+
+          // Normaliser les valeurs
+          const factor = 100 / total;
+          let newTotal = 0;
+          const keys = Object.keys(typeChances);
+
+          // Ajuster toutes les valeurs sauf la dernière
+          for (let i = 0; i < keys.length - 1; i++) {
+            const key = keys[i];
+            const adjustedValue = Math.round(typeChances[key] * factor);
+            typeChances[key] = adjustedValue;
+            newTotal += adjustedValue;
+          }
+
+          // Ajuster la dernière valeur pour avoir exactement 100%
+          const lastKey = keys[keys.length - 1];
+          typeChances[lastKey] = 100 - newTotal;
+
+          // Vérification finale
+          const finalTotal = Object.values(typeChances).reduce(
+            (sum, val) => sum + val,
+            0
+          );
+          console.log(`Après normalisation, le total est de ${finalTotal}%`);
+        }
+      }
+
+      // Création d'une copie complète des données du preset avec les valeurs normalisées
       const presetData = {
         name: preset.name || "",
         description: preset.description || "",
@@ -136,14 +196,12 @@ export default function PresetForm({ preset, isEditMode = false }) {
       console.log("Données formatées pour le formulaire:", presetData);
       setFormData(presetData);
 
-      // Calculer le pourcentage total actuel
-      if (typeChances) {
-        const total = Object.values(typeChances).reduce(
-          (sum, value) => sum + (parseInt(value) || 0),
-          0
-        );
-        setTotalPercentage(total);
-      }
+      // Mettre à jour le total des pourcentages avec la valeur normalisée
+      const calculatedTotal = Object.values(typeChances || {}).reduce(
+        (sum, value) => sum + (parseInt(value) || 0),
+        0
+      );
+      setTotalPercentage(calculatedTotal);
     }
   }, [isEditMode, preset]);
 
@@ -158,7 +216,9 @@ export default function PresetForm({ preset, isEditMode = false }) {
 
   // Gestionnaire de changement pour les pourcentages de types
   const handleTypeChanceChange = (type, value) => {
-    const parsedValue = parseInt(value, 10) || 0;
+    // Si la valeur est une chaîne vide, la garder telle quelle
+    // Sinon, la convertir en nombre (0 si la conversion échoue)
+    const parsedValue = value === "" ? "" : parseInt(value, 10) || 0;
 
     const newTypeChances = {
       ...formData.typeChances,
@@ -170,17 +230,23 @@ export default function PresetForm({ preset, isEditMode = false }) {
       typeChances: newTypeChances,
     });
 
-    // Calculer le nouveau pourcentage total
+    // Calculer le nouveau pourcentage total, en ignorant les champs vides
     const total = Object.values(newTypeChances).reduce(
-      (sum, value) => sum + (parseInt(value) || 0),
+      (sum, val) => sum + (val === "" ? 0 : parseInt(val) || 0),
       0
     );
+
     setTotalPercentage(total);
+
+    // Log pour débogage
+    console.log(`Nouveau total après changement de ${type}: ${total}%`);
   };
 
   // Gestionnaire de changement pour les configurations de rareté
   const handleRarityConfigChange = (rarity, value) => {
-    const parsedValue = parseInt(value, 10) || 0;
+    // Si la valeur est une chaîne vide, la garder telle quelle
+    // Sinon, la convertir en nombre (0 si la conversion échoue)
+    const parsedValue = value === "" ? "" : parseInt(value, 10) || 0;
 
     setFormData({
       ...formData,
@@ -196,22 +262,39 @@ export default function PresetForm({ preset, isEditMode = false }) {
     if (totalPercentage === 0) return;
 
     const newTypeChances = { ...formData.typeChances };
-    const factor = 100 / totalPercentage;
 
-    Object.keys(newTypeChances).forEach((type) => {
-      newTypeChances[type] = Math.round((newTypeChances[type] || 0) * factor);
+    // Convertir les chaînes vides en 0 pour la normalisation
+    Object.keys(newTypeChances).forEach((key) => {
+      if (newTypeChances[key] === "") {
+        newTypeChances[key] = 0;
+      }
     });
 
-    // Ajuster le dernier type pour s'assurer que la somme est exactement 100%
-    const newTotal = Object.values(newTypeChances).reduce(
-      (sum, value) => sum + value,
+    const factor = 100 / totalPercentage;
+    const keys = Object.keys(newTypeChances);
+
+    if (keys.length === 0) return;
+
+    let newTotal = 0;
+
+    // Première passe: ajuster toutes les valeurs sauf la dernière
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      const adjustedValue = Math.round((newTypeChances[key] || 0) * factor);
+      newTypeChances[key] = adjustedValue;
+      newTotal += adjustedValue;
+    }
+
+    // Ajuster la dernière valeur pour avoir exactement 100%
+    const lastKey = keys[keys.length - 1];
+    newTypeChances[lastKey] = 100 - newTotal;
+
+    // Vérification finale
+    const finalTotal = Object.values(newTypeChances).reduce(
+      (sum, val) => sum + val,
       0
     );
-    if (newTotal !== 100 && Object.keys(newTypeChances).length > 0) {
-      const lastType =
-        Object.keys(newTypeChances)[Object.keys(newTypeChances).length - 1];
-      newTypeChances[lastType] += 100 - newTotal;
-    }
+    console.log(`Après normalisation, le total est de ${finalTotal}%`);
 
     setFormData({
       ...formData,
@@ -244,8 +327,29 @@ export default function PresetForm({ preset, isEditMode = false }) {
       (sum, val) => sum + val,
       0
     );
+
     if (newTotal !== 100 && availableTypes.length > 0) {
-      newTypeChances[availableTypes[0]] += 100 - newTotal;
+      // Distribuer l'excédent ou le déficit sur toutes les valeurs
+      let diff = 100 - newTotal;
+
+      // Si le déficit/excédent est trop grand, répartir sur plusieurs types
+      if (Math.abs(diff) > 5 && availableTypes.length > 1) {
+        const adjustmentPerType = Math.floor(diff / availableTypes.length);
+        let remaining = diff;
+
+        for (let i = 0; i < availableTypes.length - 1; i++) {
+          const type = availableTypes[i];
+          const adjustment = Math.min(adjustmentPerType, remaining);
+          newTypeChances[type] += adjustment;
+          remaining -= adjustment;
+        }
+
+        // Ajuster le dernier type avec ce qui reste
+        newTypeChances[availableTypes[availableTypes.length - 1]] += remaining;
+      } else {
+        // Si la différence est faible ou il n'y a qu'un seul type, l'ajouter au premier
+        newTypeChances[availableTypes[0]] += diff;
+      }
     }
 
     setFormData({
@@ -253,7 +357,13 @@ export default function PresetForm({ preset, isEditMode = false }) {
       typeChances: newTypeChances,
     });
 
-    setTotalPercentage(100);
+    // Calculer le nouveau total réel
+    const finalTotal = Object.values(newTypeChances).reduce(
+      (sum, val) => sum + val,
+      0
+    );
+    setTotalPercentage(finalTotal);
+    console.log(`Après randomization, le total est de ${finalTotal}%`);
   };
 
   // Génération aléatoire des configurations de rareté
@@ -316,6 +426,21 @@ export default function PresetForm({ preset, isEditMode = false }) {
       return;
     }
 
+    // Convertir toutes les chaînes vides en 0 avant la soumission
+    const finalTypeChances = { ...formData.typeChances };
+    Object.keys(finalTypeChances).forEach((key) => {
+      if (finalTypeChances[key] === "") {
+        finalTypeChances[key] = 0;
+      }
+    });
+
+    const finalRarityConfig = { ...formData.rarityConfig };
+    Object.keys(finalRarityConfig).forEach((key) => {
+      if (finalRarityConfig[key] === "") {
+        finalRarityConfig[key] = 0;
+      }
+    });
+
     // Vérifier que le formulaire est complet
     if (!formData.name.trim()) {
       setError("Le nom du preset est obligatoire");
@@ -326,7 +451,14 @@ export default function PresetForm({ preset, isEditMode = false }) {
     setError("");
     setSuccess("");
 
-    console.log("Données à envoyer:", formData);
+    // Préparer les données finales avec les valeurs converties
+    const finalFormData = {
+      ...formData,
+      typeChances: finalTypeChances,
+      rarityConfig: finalRarityConfig,
+    };
+
+    console.log("Données à envoyer:", finalFormData);
 
     try {
       const apiUrl = isEditMode ? `/api/presets/${preset.id}` : "/api/presets";
@@ -337,7 +469,7 @@ export default function PresetForm({ preset, isEditMode = false }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(finalFormData),
       });
 
       if (!response.ok) {
@@ -550,10 +682,27 @@ export default function PresetForm({ preset, isEditMode = false }) {
                     <input
                       type="number"
                       id={`type-${type}`}
-                      value={formData.typeChances[type] || 0}
+                      value={formData.typeChances[type] || ""} // Utilisez "" au lieu de 0
                       onChange={(e) =>
                         handleTypeChanceChange(type, e.target.value)
                       }
+                      onFocus={(e) => {
+                        // Quand le champ obtient le focus, si la valeur est 0, la remplacer par ""
+                        if (formData.typeChances[type] === 0) {
+                          const newTypeChances = { ...formData.typeChances };
+                          newTypeChances[type] = "";
+                          setFormData({
+                            ...formData,
+                            typeChances: newTypeChances,
+                          });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Quand le champ perd le focus, si la valeur est vide, la remettre à 0
+                        if (e.target.value === "") {
+                          handleTypeChanceChange(type, 0);
+                        }
+                      }}
                       min="0"
                       max="100"
                       className="block w-full pl-2 pr-8 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
@@ -625,10 +774,27 @@ export default function PresetForm({ preset, isEditMode = false }) {
                   <input
                     type="number"
                     id={`rarity-${rarity}`}
-                    value={formData.rarityConfig[rarity] || 0}
+                    value={formData.rarityConfig[rarity] || ""} // Utilisez "" au lieu de 0
                     onChange={(e) =>
                       handleRarityConfigChange(rarity, e.target.value)
                     }
+                    onFocus={(e) => {
+                      // Quand le champ obtient le focus, si la valeur est 0, la remplacer par ""
+                      if (formData.rarityConfig[rarity] === 0) {
+                        const newRarityConfig = { ...formData.rarityConfig };
+                        newRarityConfig[rarity] = "";
+                        setFormData({
+                          ...formData,
+                          rarityConfig: newRarityConfig,
+                        });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Quand le champ perd le focus, si la valeur est vide, la remettre à 0
+                      if (e.target.value === "") {
+                        handleRarityConfigChange(rarity, 0);
+                      }
+                    }}
                     min="0"
                     className="block w-16 px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
