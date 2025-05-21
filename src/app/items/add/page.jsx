@@ -24,18 +24,71 @@ export default function AddItem() {
         ]);
 
         if (typesResponse.ok && raritiesResponse.ok) {
-          const [typesData, raritiesData] = await Promise.all([
-            typesResponse.json(),
-            raritiesResponse.json(),
-          ]);
+          try {
+            const typesResult = await typesResponse.json();
+            const raritiesResult = await raritiesResponse.json();
 
-          setTypes(typesData);
-          setRarities(raritiesData);
+            console.log("Types data received:", typesResult);
+            console.log("Rarities data received:", raritiesResult);
+
+            // Extraire les tableaux de la réponse avec une gestion robuste des différents formats
+            const typesData = Array.isArray(typesResult.types)
+              ? typesResult.types
+              : Array.isArray(typesResult)
+              ? typesResult
+              : [];
+
+            const raritiesData = Array.isArray(raritiesResult.rarities)
+              ? raritiesResult.rarities
+              : Array.isArray(raritiesResult)
+              ? raritiesResult
+              : [];
+
+            console.log("Processed types:", typesData);
+            console.log("Processed rarities:", raritiesData);
+
+            setTypes(typesData);
+            setRarities(raritiesData);
+          } catch (parseError) {
+            console.error("Erreur lors de l'analyse des données:", parseError);
+            // Valeurs par défaut en cas d'erreur de parsing
+            setTypes(["Arme", "Armure", "Équipement", "Objet merveilleux"]);
+            setRarities([
+              "Commun",
+              "Peu commun",
+              "Rare",
+              "Très rare",
+              "Légendaire",
+            ]);
+            setErrorMessage("Erreur lors de l'analyse des données");
+          }
         } else {
+          console.error("Échec du chargement des options:", {
+            types: typesResponse.status,
+            rarities: raritiesResponse.status,
+          });
+          // Valeurs par défaut en cas d'erreur de requête
+          setTypes(["Arme", "Armure", "Équipement", "Objet merveilleux"]);
+          setRarities([
+            "Commun",
+            "Peu commun",
+            "Rare",
+            "Très rare",
+            "Légendaire",
+          ]);
           setErrorMessage("Échec du chargement des options");
         }
       } catch (error) {
         console.error("Erreur lors du chargement des options:", error);
+        // Valeurs par défaut en cas d'erreur réseau
+        setTypes(["Arme", "Armure", "Équipement", "Objet merveilleux"]);
+        setRarities([
+          "Commun",
+          "Peu commun",
+          "Rare",
+          "Très rare",
+          "Légendaire",
+        ]);
         setErrorMessage("Erreur lors du chargement des options");
       } finally {
         setIsLoading(false);
@@ -50,6 +103,8 @@ export default function AddItem() {
     setErrorMessage("");
 
     try {
+      console.log("Envoi des données:", itemData);
+
       const response = await fetch("/api/items", {
         method: "POST",
         headers: {
@@ -58,31 +113,28 @@ export default function AddItem() {
         body: JSON.stringify(itemData),
       });
 
+      // Récupération du texte de la réponse
+      const responseText = await response.text();
+      console.log("Réponse brute:", responseText);
+
+      let responseData;
+      try {
+        // Tentative de parsing JSON
+        responseData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Erreur lors du parsing de la réponse:", parseError);
+        responseData = { error: "Impossible de lire la réponse du serveur" };
+      }
+
       if (response.ok) {
+        console.log("Objet ajouté avec succès:", responseData);
         // Redirection vers la liste des objets après l'ajout
         router.push("/items");
       } else {
         const status = response.status;
-        let errorText = "Erreur lors de l'ajout de l'objet";
-
-        try {
-          const text = await response.text();
-          if (text) {
-            try {
-              const data = JSON.parse(text);
-              if (data && data.error) {
-                errorText = data.error;
-              }
-            } catch (parseError) {
-              if (text.length < 100) {
-                errorText = text;
-              }
-            }
-          }
-        } catch (readError) {
-          console.error("Impossible de lire la réponse:", readError);
-        }
-
+        let errorText =
+          responseData.error || "Erreur lors de l'ajout de l'objet";
+        console.error(`Erreur (${status}):`, errorText);
         setErrorMessage(`${errorText} (Code: ${status})`);
       }
     } catch (error) {

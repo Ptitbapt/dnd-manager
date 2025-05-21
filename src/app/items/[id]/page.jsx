@@ -56,22 +56,28 @@ export default function EditItem({ params }) {
         if (typesResponse.ok) {
           try {
             const typesResult = await typesResponse.json();
+            console.log("Types response data:", typesResult);
+
             // Gérer différents formats de réponse possibles
-            typesData = Array.isArray(typesResult)
-              ? typesResult
-              : Array.isArray(typesResult.types)
+            typesData = Array.isArray(typesResult.types)
               ? typesResult.types
+              : Array.isArray(typesResult)
+              ? typesResult
               : [];
 
-            console.log("Types récupérés:", typesData);
+            console.log("Types processed:", typesData);
           } catch (error) {
             console.error("Erreur lors du traitement des types:", error);
+            // Utiliser des valeurs par défaut
+            typesData = ["Arme", "Armure", "Équipement", "Objet merveilleux"];
           }
         } else {
           console.warn(
             "Impossible de récupérer les types:",
             typesResponse.status
           );
+          // Utiliser des valeurs par défaut
+          typesData = ["Arme", "Armure", "Équipement", "Objet merveilleux"];
         }
 
         // Traitement des raretés avec gestion d'erreur
@@ -79,22 +85,40 @@ export default function EditItem({ params }) {
         if (raritiesResponse.ok) {
           try {
             const raritiesResult = await raritiesResponse.json();
+            console.log("Rarities response data:", raritiesResult);
+
             // Gérer différents formats de réponse possibles
-            raritiesData = Array.isArray(raritiesResult)
-              ? raritiesResult
-              : Array.isArray(raritiesResult.rarities)
+            raritiesData = Array.isArray(raritiesResult.rarities)
               ? raritiesResult.rarities
+              : Array.isArray(raritiesResult)
+              ? raritiesResult
               : [];
 
-            console.log("Raretés récupérées:", raritiesData);
+            console.log("Rarities processed:", raritiesData);
           } catch (error) {
             console.error("Erreur lors du traitement des raretés:", error);
+            // Utiliser des valeurs par défaut
+            raritiesData = [
+              "Commun",
+              "Peu commun",
+              "Rare",
+              "Très rare",
+              "Légendaire",
+            ];
           }
         } else {
           console.warn(
             "Impossible de récupérer les raretés:",
             raritiesResponse.status
           );
+          // Utiliser des valeurs par défaut
+          raritiesData = [
+            "Commun",
+            "Peu commun",
+            "Rare",
+            "Très rare",
+            "Légendaire",
+          ];
         }
 
         // Mise à jour des states

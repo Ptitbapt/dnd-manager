@@ -1,7 +1,10 @@
-// src/app/api/items/route.js - Fichier complet modifié
-
 import { NextResponse } from "next/server";
-import { getAllItems, getUniqueTypes, getUniqueRarities } from "../../lib/db";
+import {
+  getAllItems,
+  getUniqueTypes,
+  getUniqueRarities,
+  createItem,
+} from "../../lib/db";
 
 export async function GET(request) {
   try {
@@ -17,7 +20,11 @@ export async function GET(request) {
       try {
         const types = await getUniqueTypes();
         console.log(`${types.length} types récupérés:`, types);
-        return NextResponse.json({ types });
+
+        // Vérifier que types est bien un tableau
+        const safeTypes = Array.isArray(types) ? types : [];
+
+        return NextResponse.json({ types: safeTypes });
       } catch (error) {
         console.error("Erreur lors de la récupération des types:", error);
         // Retourner des types par défaut en cas d'erreur
@@ -37,7 +44,11 @@ export async function GET(request) {
       try {
         const rarities = await getUniqueRarities();
         console.log(`${rarities.length} raretés récupérées:`, rarities);
-        return NextResponse.json({ rarities });
+
+        // Vérifier que rarities est bien un tableau
+        const safeRarities = Array.isArray(rarities) ? rarities : [];
+
+        return NextResponse.json({ rarities: safeRarities });
       } catch (error) {
         console.error("Erreur lors de la récupération des raretés:", error);
         // Retourner des raretés par défaut en cas d'erreur
@@ -78,18 +89,53 @@ export async function GET(request) {
   }
 }
 
-// Autres méthodes selon vos besoins (POST, etc.)
+// Méthode POST corrigée pour créer un nouvel objet
 export async function POST(request) {
   try {
-    const data = await request.json();
-    // Logique pour créer un nouvel élément
-    // ...
-    return NextResponse.json(
-      { message: "Item created successfully" },
-      { status: 201 }
-    );
+    console.log("Réception d'une requête POST pour créer un nouvel objet");
+
+    // Récupérer et valider les données
+    const itemData = await request.json();
+    console.log("Données reçues:", itemData);
+
+    // Vérification des champs obligatoires
+    if (
+      !itemData.name ||
+      !itemData.type ||
+      !itemData.rarity ||
+      !itemData.source
+    ) {
+      console.error("Données incomplètes:", itemData);
+      return NextResponse.json(
+        { error: "Les champs nom, type, rareté et source sont obligatoires" },
+        { status: 400 }
+      );
+    }
+
+    // Créer l'objet dans la base de données
+    try {
+      const newItem = await createItem(itemData);
+      console.log("Nouvel objet créé:", newItem);
+
+      return NextResponse.json(
+        { success: true, message: "Objet créé avec succès", item: newItem },
+        { status: 201 }
+      );
+    } catch (dbError) {
+      console.error(
+        "Erreur lors de la création de l'objet dans la base de données:",
+        dbError
+      );
+      return NextResponse.json(
+        { error: "Erreur lors de la création de l'objet: " + dbError.message },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error(`Error creating item:`, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Erreur lors du traitement de la requête POST:", error);
+    return NextResponse.json(
+      { error: "Erreur serveur: " + error.message },
+      { status: 500 }
+    );
   }
 }

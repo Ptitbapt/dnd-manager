@@ -22,6 +22,9 @@ export default function ItemsList() {
     async function fetchItems() {
       try {
         setLoading(true);
+        setError("");
+        console.log("Chargement des données...");
+
         const [itemsResponse, typesResponse, raritiesResponse] =
           await Promise.all([
             fetch("/api/items"),
@@ -30,15 +33,55 @@ export default function ItemsList() {
           ]);
 
         if (itemsResponse.ok && typesResponse.ok && raritiesResponse.ok) {
-          const [itemsData, typesData, raritiesData] = await Promise.all([
-            itemsResponse.json(),
-            typesResponse.json(),
-            raritiesResponse.json(),
-          ]);
-          setItems(itemsData);
-          setTypes(typesData);
-          setRarities(raritiesData);
+          try {
+            const itemsData = await itemsResponse.json();
+            const typesData = await typesResponse.json();
+            const raritiesData = await raritiesResponse.json();
+
+            console.log("Données reçues:", {
+              items: typeof itemsData,
+              types: typesData,
+              rarities: raritiesData,
+            });
+
+            // Traitement des données reçues pour s'assurer qu'elles sont dans le bon format
+            const processedItems = Array.isArray(itemsData) ? itemsData : [];
+
+            const processedTypes = Array.isArray(typesData.types)
+              ? typesData.types
+              : Array.isArray(typesData)
+              ? typesData
+              : [];
+
+            const processedRarities = Array.isArray(raritiesData.rarities)
+              ? raritiesData.rarities
+              : Array.isArray(raritiesData)
+              ? raritiesData
+              : [];
+
+            console.log("Données traitées:", {
+              items: processedItems.length,
+              types: processedTypes,
+              rarities: processedRarities,
+            });
+
+            setItems(processedItems);
+            setTypes(processedTypes);
+            setRarities(processedRarities);
+          } catch (parseError) {
+            console.error("Erreur lors de l'analyse des données:", parseError);
+            setError("Erreur lors de l'analyse des données");
+            // Initialiser avec des tableaux vides
+            setItems([]);
+            setTypes([]);
+            setRarities([]);
+          }
         } else {
+          console.error("Erreur lors du chargement des données:", {
+            items: itemsResponse.status,
+            types: typesResponse.status,
+            rarities: raritiesResponse.status,
+          });
           setError("Erreur lors du chargement des données");
         }
       } catch (error) {
@@ -52,32 +95,69 @@ export default function ItemsList() {
     fetchItems();
   }, []);
 
-  const filteredItems = items.filter((item) => {
-    // Normalisation du texte de recherche et du nom de l'objet
-    const normalizedFilter = normalizeText(filter);
-    const normalizedName = normalizeText(item.Nomobjet);
+  // Vérifier que les items sont bien un tableau avant de les filtrer
+  const filteredItems = Array.isArray(items)
+    ? items.filter((item) => {
+        if (!item || !item.Nomobjet) return false;
 
-    return (
-      normalizedName.includes(normalizedFilter) &&
-      (typeFilter === "" || item.Type === typeFilter) &&
-      (rarityFilter === "" || item.Rarete === rarityFilter)
-    );
-  });
+        try {
+          // Normalisation du texte de recherche et du nom de l'objet
+          const normalizedFilter = normalizeText(filter || "");
+          const normalizedName = normalizeText(item.Nomobjet || "");
+
+          return (
+            normalizedName.includes(normalizedFilter) &&
+            (typeFilter === "" || item.Type === typeFilter) &&
+            (rarityFilter === "" || item.Rarete === rarityFilter)
+          );
+        } catch (error) {
+          console.error("Erreur lors du filtrage d'un item:", error, item);
+          return false;
+        }
+      })
+    : [];
 
   const handleDelete = async (id) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet objet ?")) {
       try {
+        console.log(`Tentative de suppression de l'objet avec ID: ${id}`);
+
         const response = await fetch(`/api/items/${id}`, {
           method: "DELETE",
         });
+
+        console.log(`Réponse de suppression: status ${response.status}`);
+
+        // Logger la réponse complète pour le débogage
+        const responseText = await response.text();
+        console.log(`Réponse complète: ${responseText}`);
+
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          console.error("Impossible de parser la réponse JSON:", e);
+          responseData = {};
+        }
+
         if (response.ok) {
+          console.log("Suppression réussie, mise à jour de l'état local");
           setItems(items.filter((item) => item.IDX !== id));
+          setError(""); // Effacer tout message d'erreur précédent
         } else {
-          setError("Erreur lors de la suppression de l'objet");
+          console.error(
+            "Erreur lors de la suppression:",
+            responseData.error || response.statusText
+          );
+          setError(
+            `Erreur lors de la suppression: ${
+              responseData.error || response.statusText
+            }`
+          );
         }
       } catch (error) {
         console.error("Erreur lors de la suppression de l'objet:", error);
-        setError("Erreur lors de la suppression de l'objet");
+        setError(`Erreur: ${error.message}`);
       }
     }
   };
@@ -171,11 +251,12 @@ export default function ItemsList() {
                 className="pl-3 pr-10 py-2 w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 appearance-none bg-white cursor-pointer"
               >
                 <option value="">Tous les types</option>
-                {types.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
+                {Array.isArray(types) &&
+                  types.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -196,11 +277,12 @@ export default function ItemsList() {
                 className="pl-3 pr-10 py-2 w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 appearance-none bg-white cursor-pointer"
               >
                 <option value="">Toutes les raretés</option>
-                {rarities.map((rarity) => (
-                  <option key={rarity} value={rarity}>
-                    {rarity}
-                  </option>
-                ))}
+                {Array.isArray(rarities) &&
+                  rarities.map((rarity) => (
+                    <option key={rarity} value={rarity}>
+                      {rarity}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>

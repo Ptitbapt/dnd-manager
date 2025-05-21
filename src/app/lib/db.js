@@ -151,20 +151,35 @@ export async function createItem(item) {
   if (!isPrismaAvailable() || !prisma) {
     throw new Error("Non disponible dans l'environnement actuel");
   }
-  return await prisma.iTEMS.create({
-    data: {
-      Nomobjet: item.name,
-      Type: item.type,
-      Soustype: item.subType || null,
-      Maitrise: item.proficiency || null,
-      Rarete: item.rarity,
-      Caractéristiques: item.characteristics || null,
-      Valeur: item.value ? parseFloat(item.value) : null,
-      Infosupplémentaire: item.additionalInfo || null,
-      Poids: item.weight || null,
-      Source: item.source,
-    },
-  });
+
+  console.log("Création d'un nouvel objet avec les données:", item);
+
+  try {
+    // Convertir la valeur en chaîne de caractères si elle existe
+    // Puisque le champ Valeur attend une String et non un Int
+    const value = item.value ? String(item.value.replace(",", ".")) : null;
+
+    const result = await prisma.iTEMS.create({
+      data: {
+        Nomobjet: item.name,
+        Type: item.type,
+        Soustype: item.subType || null,
+        Maitrise: item.proficiency || null,
+        Rarete: item.rarity,
+        Caracteristiques: item.characteristics || null,
+        Valeur: item.value ? String(item.value).replace(",", ".") : null, // Comme chaîne
+        Infosupplementaire: item.additionalInfo || null,
+        Poids: item.weight || null, // On ne convertit pas en nombre ici non plus
+        Source: item.source,
+      },
+    });
+
+    console.log("Objet créé avec succès:", result);
+    return result;
+  } catch (error) {
+    console.error("Erreur lors de la création de l'objet:", error);
+    throw error;
+  }
 }
 
 /**
@@ -201,9 +216,38 @@ export async function deleteItem(id) {
   if (!isPrismaAvailable() || !prisma) {
     throw new Error("Non disponible dans l'environnement actuel");
   }
-  return await prisma.iTEMS.delete({
-    where: { IDX: Number(id) },
-  });
+
+  console.log(`Suppression de l'objet avec ID: ${id} (type: ${typeof id})`);
+
+  try {
+    // Convertir ID en nombre si c'est une chaîne
+    const itemId = Number(id);
+
+    if (isNaN(itemId)) {
+      throw new Error(`ID invalide: ${id} n'est pas un nombre valide`);
+    }
+
+    console.log(`Suppression de l'objet avec IDX: ${itemId}`);
+
+    const result = await prisma.iTEMS.delete({
+      where: { IDX: itemId },
+    });
+
+    console.log("Objet supprimé avec succès:", result);
+    return result;
+  } catch (error) {
+    console.error(
+      `Erreur lors de la suppression de l'objet avec ID ${id}:`,
+      error
+    );
+
+    // Fournir des informations supplémentaires pour le débogage en fonction du type d'erreur
+    if (error.code === "P2025") {
+      throw new Error(`Objet avec ID ${id} non trouvé dans la base de données`);
+    }
+
+    throw error;
+  }
 }
 
 /**
