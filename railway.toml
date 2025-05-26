@@ -7,4 +7,4 @@ restartPolicyType = "on_failure"
 
 [environments.production.variables]
 NODE_ENV = "production"
-DATABASE_URL = "file:./db_DMG.db"
+DATABASE_URL = "file:./prod.db"
