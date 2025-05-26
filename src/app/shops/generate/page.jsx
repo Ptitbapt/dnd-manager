@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ShopConfigSection from "../../components/shops/ShopConfigSelection";
@@ -14,7 +15,11 @@ import {
   fetchTypesAndRarities,
 } from "../../lib/shopGeneratorUtils";
 
-export default function GenerateShop() {
+// Forcer le rendu dynamique pour éviter les erreurs de build
+export const dynamic = "force-dynamic";
+
+// Composant qui utilise useSearchParams
+function GenerateShopContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const presetId = searchParams.get("preset");
@@ -508,5 +513,37 @@ export default function GenerateShop() {
         )}
       </div>
     </div>
+  );
+}
+
+// Composant de loading pour Suspense
+function GenerateShopLoading() {
+  return (
+    <div className="bg-white rounded-lg shadow-md border border-gray-200">
+      <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50">
+        <h1 className="text-xl font-medium text-gray-800">
+          Générer une Boutique
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Chargement de la configuration...
+        </p>
+      </div>
+      <div className="p-4">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-32 bg-gray-200 rounded mb-4"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Composant principal avec Suspense
+export default function GenerateShop() {
+  return (
+    <Suspense fallback={<GenerateShopLoading />}>
+      <GenerateShopContent />
+    </Suspense>
   );
 }
