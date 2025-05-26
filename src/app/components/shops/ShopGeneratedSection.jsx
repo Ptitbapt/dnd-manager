@@ -16,6 +16,7 @@ export default function ShopGeneratedSection({
   onSave,
   onAddItem,
   onRemoveItem,
+  onUpdateItem, // Nouvelle prop pour gérer les modifications d'items
   onToggleItemSelector,
 }) {
   const { isSaving, showItemSelector } = uiState;
@@ -52,6 +53,34 @@ export default function ShopGeneratedSection({
         </span>
       </h2>
 
+      {/* Message d'information sur l'édition */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-start">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <div className="text-sm text-blue-700">
+            <p className="font-medium">Édition des objets</p>
+            <p className="mt-1">
+              Cliquez sur les valeurs (prix, poids, caractéristiques) pour les
+              modifier temporairement dans cette boutique sans affecter la base
+              de données.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <ShopDetailsForm
         shopName={shopDetails.name}
         shopDescription={shopDetails.description}
@@ -61,7 +90,11 @@ export default function ShopGeneratedSection({
         isSaving={isSaving}
       />
 
-      <ShopItemsTable shopItems={shopItems} onRemoveItem={onRemoveItem} />
+      <ShopItemsTable
+        shopItems={shopItems}
+        onRemoveItem={onRemoveItem}
+        onUpdateItem={onUpdateItem}
+      />
 
       {/* Toggle pour le sélecteur d'objets */}
       <div className="mt-6 mb-2">

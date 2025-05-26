@@ -1,4 +1,4 @@
-// lib/shopGenerator.js - Version adaptée à votre DB actuelle
+// lib/shopGenerator.js - Version adaptée pour sauvegarder les objets modifiés
 import { prisma } from "./db";
 
 /**
@@ -167,11 +167,11 @@ function selectRandomType(typeChances) {
 }
 
 /**
- * Sauvegarde une boutique générée avec une meilleure gestion des erreurs
+ * Sauvegarde une boutique générée avec les objets modifiés
  *
  * @param {string} name Nom de la boutique
  * @param {string} description Description de la boutique
- * @param {Array} items Liste des objets de la boutique
+ * @param {Array} items Liste des objets de la boutique (objets complets avec modifications)
  * @returns {Promise<Object>} La boutique sauvegardée
  */
 export async function saveShop(name, description, items) {
@@ -193,32 +193,36 @@ export async function saveShop(name, description, items) {
       throw new Error("La liste des objets ne peut pas être vide");
     }
 
-    // Extraire uniquement les ID des objets pour le stockage
-    const itemIds = items.map((item) => {
-      // Si c'est déjà un nombre
-      if (typeof item === "number") {
-        return item;
-      }
-      // Si c'est un objet avec Index (nouvelle structure)
-      if (item && typeof item === "object" && "Index" in item) {
-        return Number(item.Index);
-      }
-      // Si c'est un objet avec IDX (ancienne structure)
-      if (item && typeof item === "object" && "IDX" in item) {
-        return Number(item.IDX);
-      }
-      // Par défaut, considérer comme un ID
-      return Number(item);
+    // Sauvegarder les objets complets avec leurs modifications
+    // Au lieu de sauvegarder juste les IDs, on sauvegarde les objets modifiés
+    const itemsToSave = items.map((item) => {
+      // Garder la structure complète de l'objet avec ses modifications
+      return {
+        id: item.Index || item.IDX || item.id,
+        name: item.NomObjet || item.Nomobjet || item.name,
+        type: item.Type || item.type,
+        subType: item.SousType || item.Soustype || item.subType,
+        rarity: item.Rarete || item.rarity,
+        value: item.Valeur || item.value,
+        weight: item.Poids || item.weight,
+        characteristics: item.Caracteristiques || item.characteristics,
+        additionalInfo:
+          item.InfoSupplementaire ||
+          item.Infosupplementaire ||
+          item.additionalInfo,
+        source: item.Source || item.source,
+        proficiency: item.Maitrise || item.proficiency,
+      };
     });
 
-    console.log("IDs d'objets formatés:", itemIds);
+    console.log("Objets formatés pour sauvegarde:", itemsToSave);
 
     // Créer une nouvelle boutique dans la base de données
     const newShop = await prisma.Shop.create({
       data: {
         name: name.trim(),
         description: description ? description.trim() : "",
-        items: JSON.stringify(itemIds),
+        items: JSON.stringify(itemsToSave), // Sauvegarder les objets complets
         createdAt: new Date(),
       },
     });
@@ -252,24 +256,37 @@ export async function getShopWithItems(shopId) {
 
     console.log(`Boutique trouvée:`, shop);
 
-    // Récupérer les objets à partir des ID stockés
-    let itemIds;
+    // Récupérer les objets sauvegardés (maintenant des objets complets)
+    let savedItems;
     try {
-      itemIds = JSON.parse(shop.items);
+      savedItems = JSON.parse(shop.items);
     } catch (error) {
-      console.error(`Erreur lors du parsing des IDs d'objets:`, error);
-      itemIds = [];
+      console.error(`Erreur lors du parsing des objets:`, error);
+      savedItems = [];
     }
 
-    console.log(`Récupération de ${itemIds.length} objets...`);
+    console.log(`${savedItems.length} objets récupérés de la sauvegarde`);
 
-    const items = await prisma.ITEMS.findMany({
-      where: {
-        Index: { in: itemIds.map((id) => Number(id)) }, // Utiliser Index au lieu de IDX
-      },
-    });
-
-    console.log(`${items.length} objets récupérés`);
+    // Les objets sont maintenant stockés avec leurs modifications
+    // On les retourne directement au lieu de les chercher en base
+    const items = savedItems.map((item) => ({
+      // Mapper vers le format attendu par l'interface
+      Index: item.id,
+      IDX: item.id, // Pour la compatibilité
+      NomObjet: item.name,
+      Nomobjet: item.name, // Pour la compatibilité
+      Type: item.type,
+      SousType: item.subType,
+      Soustype: item.subType, // Pour la compatibilité
+      Rarete: item.rarity,
+      Valeur: item.value,
+      Poids: item.weight,
+      Caracteristiques: item.characteristics,
+      InfoSupplementaire: item.additionalInfo,
+      Infosupplementaire: item.additionalInfo, // Pour la compatibilité
+      Source: item.source,
+      Maitrise: item.proficiency,
+    }));
 
     return {
       ...shop,

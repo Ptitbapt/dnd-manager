@@ -26,6 +26,8 @@ export async function POST(request) {
     // Récupérer et valider les données
     const data = await request.json();
 
+    console.log("Données reçues pour sauvegarde:", data);
+
     // Validation des données
     if (!data.name || !data.name.trim()) {
       ongoingSaves.delete(userIdentifier); // Nettoyer en cas d'erreur
@@ -58,11 +60,12 @@ export async function POST(request) {
       );
     }
 
-    // Sauvegarde de la boutique
+    // Sauvegarde de la boutique AVEC les objets modifiés
+    // Au lieu de passer juste les IDs, on passe les objets complets avec leurs modifications
     const newShop = await saveShop(
       data.name,
       data.description || "",
-      data.items
+      data.items // Maintenant on passe les objets complets avec leurs modifications
     );
 
     // Nettoyer après traitement

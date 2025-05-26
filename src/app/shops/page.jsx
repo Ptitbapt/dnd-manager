@@ -8,7 +8,7 @@ import RarityBadge from "../components/ui/RarityBadge";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import EmptyState from "../components/ui/EmptyState";
-import { fetchShops, fetchShopItems, deleteShop } from "../lib/shopApiUtils"; // Le chemin est correct ici
+import { fetchShops, fetchShopItems, deleteShop } from "../lib/shopApiUtils";
 
 export default function ShopsList() {
   const [shops, setShops] = useState([]);
@@ -103,6 +103,41 @@ export default function ShopsList() {
     ) {
       setPurchasedItems({});
     }
+  };
+
+  // Fonction pour obtenir l'ID de l'item (compatible avec les deux formats)
+  const getItemId = (item) => {
+    return item.Index || item.IDX || item.id;
+  };
+
+  // Fonction pour obtenir le nom de l'item (compatible avec les deux formats)
+  const getItemName = (item) => {
+    return item.NomObjet || item.Nomobjet || item.name;
+  };
+
+  // Fonction pour obtenir le type de l'item (compatible avec les deux formats)
+  const getItemType = (item) => {
+    return item.Type || item.type;
+  };
+
+  // Fonction pour obtenir le sous-type de l'item (compatible avec les deux formats)
+  const getItemSubType = (item) => {
+    return item.SousType || item.Soustype || item.subType;
+  };
+
+  // Fonction pour obtenir la rareté de l'item (compatible avec les deux formats)
+  const getItemRarity = (item) => {
+    return item.Rarete || item.rarity;
+  };
+
+  // Fonction pour obtenir la valeur de l'item (compatible avec les deux formats)
+  const getItemValue = (item) => {
+    return item.Valeur || item.value;
+  };
+
+  // Fonction pour obtenir la source de l'item (compatible avec les deux formats)
+  const getItemSource = (item) => {
+    return item.Source || item.source;
   };
 
   // Icône pour la section des boutiques
@@ -382,6 +417,9 @@ export default function ShopsList() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-700 rounded-tl-lg">
+                        ID
+                      </th>
+                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
                         Nom
                       </th>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
@@ -402,99 +440,116 @@ export default function ShopsList() {
                     </tr>
                   </thead>
                   <tbody>
-                    {shopItems.map((item, index) => (
-                      <tr
-                        key={item.IDX}
-                        className={`${
-                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        } ${purchasedItems[item.IDX] ? "opacity-60" : ""}`}
-                      >
-                        <td
-                          className={`py-3 px-4 text-sm font-medium text-gray-900 ${
-                            purchasedItems[item.IDX] ? "line-through" : ""
-                          }`}
+                    {shopItems.map((item, index) => {
+                      const itemId = getItemId(item);
+                      const itemName = getItemName(item);
+                      const itemType = getItemType(item);
+                      const itemSubType = getItemSubType(item);
+                      const itemRarity = getItemRarity(item);
+                      const itemValue = getItemValue(item);
+                      const itemSource = getItemSource(item);
+
+                      return (
+                        <tr
+                          key={itemId}
+                          className={`${
+                            index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                          } ${purchasedItems[itemId] ? "opacity-60" : ""}`}
                         >
-                          <ItemLink name={item.Nomobjet} />
-                        </td>
-                        <td
-                          className={`py-3 px-4 text-sm text-gray-700 ${
-                            purchasedItems[item.IDX] ? "line-through" : ""
-                          }`}
-                        >
-                          <TypeBadge type={item.Type} subtype={item.Soustype} />
-                        </td>
-                        <td
-                          className={`py-3 px-4 text-sm text-gray-700 ${
-                            purchasedItems[item.IDX] ? "line-through" : ""
-                          }`}
-                        >
-                          <RarityBadge rarity={item.Rarete} />
-                        </td>
-                        <td
-                          className={`py-3 px-4 text-sm text-gray-700 ${
-                            purchasedItems[item.IDX] ? "line-through" : ""
-                          }`}
-                        >
-                          {item.Valeur ? `${item.Valeur} PO` : "-"}
-                        </td>
-                        <td
-                          className={`py-3 px-4 text-sm text-gray-700 ${
-                            purchasedItems[item.IDX] ? "line-through" : ""
-                          }`}
-                        >
-                          <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                            {item.Source}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => toggleItemPurchased(item.IDX)}
-                            className={`p-1.5 rounded-full transition-colors ${
-                              purchasedItems[item.IDX]
-                                ? "bg-green-100 text-green-600 hover:bg-green-200"
-                                : "bg-blue-100 text-blue-400 hover:bg-blue-200"
+                          <td
+                            className={`py-3 px-4 text-sm text-gray-600 ${
+                              purchasedItems[itemId] ? "line-through" : ""
                             }`}
-                            title={
-                              purchasedItems[item.IDX]
-                                ? "Marquer comme disponible"
-                                : "Marquer comme acheté"
-                            }
                           >
-                            {purchasedItems[item.IDX] ? (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            ) : (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                                />
-                              </svg>
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                            #{itemId}
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-sm font-medium text-gray-900 ${
+                              purchasedItems[itemId] ? "line-through" : ""
+                            }`}
+                          >
+                            <ItemLink name={itemName} />
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-sm text-gray-700 ${
+                              purchasedItems[itemId] ? "line-through" : ""
+                            }`}
+                          >
+                            <TypeBadge type={itemType} subtype={itemSubType} />
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-sm text-gray-700 ${
+                              purchasedItems[itemId] ? "line-through" : ""
+                            }`}
+                          >
+                            <RarityBadge rarity={itemRarity} />
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-sm text-gray-700 ${
+                              purchasedItems[itemId] ? "line-through" : ""
+                            }`}
+                          >
+                            {itemValue ? `${itemValue} PO` : "-"}
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-sm text-gray-700 ${
+                              purchasedItems[itemId] ? "line-through" : ""
+                            }`}
+                          >
+                            <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                              {itemSource}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <button
+                              onClick={() => toggleItemPurchased(itemId)}
+                              className={`p-1.5 rounded-full transition-colors ${
+                                purchasedItems[itemId]
+                                  ? "bg-green-100 text-green-600 hover:bg-green-200"
+                                  : "bg-blue-100 text-blue-400 hover:bg-blue-200"
+                              }`}
+                              title={
+                                purchasedItems[itemId]
+                                  ? "Marquer comme disponible"
+                                  : "Marquer comme acheté"
+                              }
+                            >
+                              {purchasedItems[itemId] ? (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

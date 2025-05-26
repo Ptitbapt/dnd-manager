@@ -373,7 +373,12 @@ export default function GenerateShop() {
 
   // Gestion des objets de la boutique
   const addItemToShop = (item) => {
-    if (!shopItems.some((existingItem) => existingItem.IDX === item.IDX)) {
+    const itemId = item.IDX || item.Index;
+    if (
+      !shopItems.some(
+        (existingItem) => (existingItem.IDX || existingItem.Index) === itemId
+      )
+    ) {
       setShopItems([...shopItems, item]);
       setMessages({ success: "Objet ajouté à la boutique", error: "" });
       setTimeout(() => setMessages({ success: "", error: "" }), 2000);
@@ -387,8 +392,21 @@ export default function GenerateShop() {
   };
 
   const removeItemFromShop = (itemId) => {
-    setShopItems(shopItems.filter((item) => item.IDX !== itemId));
+    setShopItems(
+      shopItems.filter((item) => (item.IDX || item.Index) !== itemId)
+    );
     setMessages({ success: "Objet retiré de la boutique", error: "" });
+    setTimeout(() => setMessages({ success: "", error: "" }), 2000);
+  };
+
+  // Nouvelle fonction pour mettre à jour un objet dans la boutique
+  const updateItemInShop = (itemId, updatedItem) => {
+    setShopItems((prevItems) =>
+      prevItems.map((item) =>
+        (item.IDX || item.Index) === itemId ? updatedItem : item
+      )
+    );
+    setMessages({ success: "Objet modifié dans la boutique", error: "" });
     setTimeout(() => setMessages({ success: "", error: "" }), 2000);
   };
 
@@ -484,6 +502,7 @@ export default function GenerateShop() {
             onSave={saveShop}
             onAddItem={addItemToShop}
             onRemoveItem={removeItemFromShop}
+            onUpdateItem={updateItemInShop}
             onToggleItemSelector={toggleItemSelector}
           />
         )}
