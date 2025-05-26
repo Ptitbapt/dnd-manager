@@ -4,21 +4,23 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:../db_ITEMS.db"
+  url      = "file:../db_DMG.db"
 }
 
 model ITEMS {
-  IDX                Int     @id @default(autoincrement())
-  Nomobjet           String?
+  Index              Int     @id @default(autoincrement())
+  NomObjet           String?
   Type               String?
-  Soustype           String?
+  SousType           String?
   Maitrise           String?
   Rarete             String?
   Caracteristiques   String?
   Valeur             String?
-  Infosupplementaire String?
+  InfoSupplementaire String?
   Poids              String?
   Source             String?
+
+  @@map("ITEMS")
 }
 
 model Shop {
@@ -27,17 +29,21 @@ model Shop {
   description String?
   items       String
   createdAt   DateTime @default(now())
+
+  @@map("Shop")
 }
 
 model ShopPreset {
-  id           Int      @id @default(autoincrement())
-  name         String
-  description  String?
-  wealthLevel  String   // "pauvre", "standard", "luxueux"
-  shopType     String   // "armurier", "magicien", "alchimiste", etc.
-  typeChances  Json     // Distribution des types d'objets en pourcentage
-  rarityConfig Json     // Configuration des objets par rareté
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  isDefault    Boolean  @default(false)  // Si c'est un preset par défaut ou créé par l'utilisateur
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  wealthLevel String   // "pauvre", "standard", "luxueux"
+  shopType    String   // "armurier", "magicien", "alchimiste", etc.
+  typeChances String   // JSON string des pourcentages par type
+  rarityConfig String  // JSON string de la configuration des raretés
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ShopPreset")
 }

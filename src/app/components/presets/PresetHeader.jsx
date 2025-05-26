@@ -1,4 +1,4 @@
-// components/PresetHeader.jsx
+// components/presets/PresetHeader.jsx
 
 export default function PresetHeader({ isEditMode }) {
   return (
@@ -8,8 +8,8 @@ export default function PresetHeader({ isEditMode }) {
       </h1>
       <p className="mt-1 text-sm text-gray-500">
         {isEditMode
-          ? "Modifiez les paramètres du preset existant"
-          : "Configurez un nouveau preset pour générer des boutiques rapidement"}
+          ? "Modifiez les paramètres de ce preset de boutique"
+          : "Définissez une configuration prédéfinie pour la génération de boutiques"}
       </p>
     </div>
   );

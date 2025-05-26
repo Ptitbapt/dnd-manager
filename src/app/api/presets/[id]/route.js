@@ -1,4 +1,4 @@
-// src/app/api/presets/[id]/route.js
+// app/api/presets/[id]/route.js
 import {
   getPresetById,
   updatePreset,
@@ -28,7 +28,7 @@ export async function GET(request, context) {
     }
 
     // Récupérer l'ID de manière asynchrone
-    const params = context.params;
+    const params = await context.params;
     const id = params.id;
 
     // Récupérer le preset
@@ -87,7 +87,7 @@ export async function PUT(request, context) {
     }
 
     // Récupérer l'ID de manière asynchrone
-    const params = context.params;
+    const params = await context.params;
     const id = params.id;
 
     const data = await request.json();
@@ -217,7 +217,7 @@ export async function DELETE(request, context) {
     }
 
     // Récupérer l'ID de manière asynchrone
-    const params = context.params;
+    const params = await context.params;
     const id = params.id;
 
     // Vérifier que le preset existe

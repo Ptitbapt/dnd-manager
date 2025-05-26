@@ -18,6 +18,8 @@ export default function ShopConfigSection({
   uiState,
   onConfigChange,
   onGenerate,
+  onClearAllRarities, // Nouvelle prop
+  onClearAllTypes, // Nouvelle prop
 }) {
   const { types, rarities } = metadata;
   const { isLoading, isGenerating, totalPercentage } = uiState;
@@ -191,6 +193,7 @@ export default function ShopConfigSection({
             shopConfig={shopConfig}
             onRarityChange={handleRarityChange}
             onRandomize={handleRandomizeRarities}
+            onClearAllRarities={onClearAllRarities} // Prop transmise
           />
         ) : (
           <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
@@ -210,6 +213,7 @@ export default function ShopConfigSection({
               onTypeChanceChange={handleTypeChanceChange}
               onNormalize={handleNormalizePercentages}
               onRandomize={handleRandomizeTypeChances}
+              onClearAllTypes={onClearAllTypes} // Nouvelle prop ajoutée
               totalPercentage={totalPercentage}
             />
           </div>

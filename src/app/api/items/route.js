@@ -1,3 +1,4 @@
+// app/api/items/route.js - Version corrigée pour nouvelle base de données
 import { NextResponse } from "next/server";
 import {
   getAllItems,

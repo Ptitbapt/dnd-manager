@@ -1,33 +1,35 @@
-// lib/shopGenerator.js
+// lib/shopGenerator.js - Version adaptée à votre DB actuelle
 import { prisma } from "./db";
 
 /**
  * Génère une boutique aléatoire basée sur les paramètres spécifiés
  *
  * @param {Object} config Configuration pour la génération de la boutique
- * @param {Object} config.itemsPerRarity Nombre d'objets par rareté (ex: { 'Common': 5, 'Rare': 2 })
- * @param {Object} config.typeChances Pourcentage de chance pour chaque type (ex: { 'Weapon': 30, 'Potion': 20 })
+ * @param {Object} config.itemsPerRarity Nombre d'objets par rareté
+ * @param {Object} config.typeChances Pourcentage de chance pour chaque type
  * @returns {Promise<Array>} Liste d'objets générée pour la boutique
  */
 export async function generateShop(config) {
   console.log("Génération de boutique avec la configuration:", config);
 
-  // Configuration par défaut
+  // Configuration par défaut adaptée à votre DB
   const defaultConfig = {
     itemsPerRarity: {
-      Common: 5,
-      Uncommon: 3,
-      Rare: 2,
-      "Very Rare": 1,
-      Legendary: 0,
-      Artifact: 0,
+      "0 - Neutre": 3,
+      "1 - Commun": 5,
+      "2 - Peu commun": 3,
+      "3 - Rare": 2,
+      "4 - Très rare": 1,
+      "5 - Légendaire": 0,
+      "6 - Artéfact": 0,
     },
     typeChances: {
-      Weapon: 30,
-      Armor: 20,
-      Potion: 20,
-      Scroll: 15,
-      "Wondrous Item": 15,
+      Arme: 25,
+      Armure: 20,
+      Équipement: 20,
+      Potion: 15,
+      "Objet merveilleux": 10,
+      Outils: 10,
     },
   };
 
@@ -77,8 +79,8 @@ export async function generateShop(config) {
  * @returns {Promise<Array>} Liste des objets sélectionnés
  */
 async function selectItemsByRarityAndType(rarity, count, typeChances) {
-  // Récupérer tous les objets de la rareté spécifiée
-  const itemsByRarity = await prisma.iTEMS.findMany({
+  // Récupérer tous les objets de la rareté spécifiée - utiliser ITEMS au lieu de iTEMS
+  const itemsByRarity = await prisma.ITEMS.findMany({
     where: { Rarete: rarity },
   });
 
@@ -121,14 +123,14 @@ async function selectItemsByRarityAndType(rarity, count, typeChances) {
 
     // Sélectionner un objet aléatoire parmi les objets éligibles (qui n'a pas déjà été sélectionné)
     const notSelectedItems = eligibleItems.filter(
-      (item) => !selectedIds.has(item.IDX)
+      (item) => !selectedIds.has(item.Index) // Utiliser Index au lieu de IDX
     );
 
     if (notSelectedItems.length > 0) {
       const randomIndex = Math.floor(Math.random() * notSelectedItems.length);
       const selectedItem = notSelectedItems[randomIndex];
       selectedItems.push(selectedItem);
-      selectedIds.add(selectedItem.IDX);
+      selectedIds.add(selectedItem.Index); // Utiliser Index au lieu de IDX
     } else if (eligibleItems.length > 0 && selectedItems.length < count) {
       // Si tous les objets ont déjà été sélectionnés mais que nous n'avons pas atteint le nombre demandé
       // Autoriser les doublons en dernier recours
@@ -169,7 +171,7 @@ function selectRandomType(typeChances) {
  *
  * @param {string} name Nom de la boutique
  * @param {string} description Description de la boutique
- * @param {Array} items Liste des objets de la boutique (peut être un tableau d'objets ou d'IDs)
+ * @param {Array} items Liste des objets de la boutique
  * @returns {Promise<Object>} La boutique sauvegardée
  */
 export async function saveShop(name, description, items) {
@@ -197,7 +199,11 @@ export async function saveShop(name, description, items) {
       if (typeof item === "number") {
         return item;
       }
-      // Si c'est un objet avec IDX
+      // Si c'est un objet avec Index (nouvelle structure)
+      if (item && typeof item === "object" && "Index" in item) {
+        return Number(item.Index);
+      }
+      // Si c'est un objet avec IDX (ancienne structure)
       if (item && typeof item === "object" && "IDX" in item) {
         return Number(item.IDX);
       }
@@ -208,7 +214,7 @@ export async function saveShop(name, description, items) {
     console.log("IDs d'objets formatés:", itemIds);
 
     // Créer une nouvelle boutique dans la base de données
-    const newShop = await prisma.shop.create({
+    const newShop = await prisma.Shop.create({
       data: {
         name: name.trim(),
         description: description ? description.trim() : "",
@@ -235,7 +241,7 @@ export async function getShopWithItems(shopId) {
   console.log(`Récupération de la boutique avec ID: ${shopId}`);
 
   try {
-    const shop = await prisma.shop.findUnique({
+    const shop = await prisma.Shop.findUnique({
       where: { id: Number(shopId) },
     });
 
@@ -257,9 +263,9 @@ export async function getShopWithItems(shopId) {
 
     console.log(`Récupération de ${itemIds.length} objets...`);
 
-    const items = await prisma.iTEMS.findMany({
+    const items = await prisma.ITEMS.findMany({
       where: {
-        IDX: { in: itemIds.map((id) => Number(id)) },
+        Index: { in: itemIds.map((id) => Number(id)) }, // Utiliser Index au lieu de IDX
       },
     });
 
@@ -287,7 +293,7 @@ export async function getAllShops() {
   console.log("Récupération de toutes les boutiques");
 
   try {
-    const shops = await prisma.shop.findMany({
+    const shops = await prisma.Shop.findMany({
       orderBy: {
         createdAt: "desc",
       },
@@ -311,7 +317,7 @@ export async function deleteShop(shopId) {
   console.log(`Tentative de suppression de la boutique avec ID: ${shopId}`);
 
   try {
-    await prisma.shop.delete({
+    await prisma.Shop.delete({
       where: { id: Number(shopId) },
     });
 

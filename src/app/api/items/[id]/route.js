@@ -1,4 +1,4 @@
-// src/app/api/items/[id]/route.js
+// app/api/items/[id]/route.js - Version corrigée pour nouvelle base de données
 import { getItemById, updateItem, deleteItem } from "../../../lib/db";
 import { NextResponse } from "next/server";
 

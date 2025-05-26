@@ -1,3 +1,4 @@
+// app/presets/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -109,8 +110,15 @@ export default function PresetList() {
         throw new Error(errorData.error || `Erreur ${response.status}`);
       }
 
-      // Mettre à jour la liste des présets après suppression
-      setPresets(presets.filter((preset) => preset.id !== id));
+      // Mettre à jour immédiatement les deux listes de presets
+      const updatedPresets = presets.filter((preset) => preset.id !== id);
+      setPresets(updatedPresets);
+
+      // Forcer la mise à jour des presets filtrés aussi
+      setFilteredPresets((prevFiltered) =>
+        prevFiltered.filter((preset) => preset.id !== id)
+      );
+
       setSuccess("Preset supprimé avec succès");
 
       // Masquer le message de succès après 3 secondes
@@ -128,6 +136,49 @@ export default function PresetList() {
     }
   };
 
+  // Initialiser les présets par défaut
+  const initializeDefaultPresets = async () => {
+    if (
+      !confirm(
+        "Voulez-vous remplacer tous les présets par défaut par les dernières versions ? Cette action supprimera les anciens présets par défaut et les remplacera."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/presets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "initialize",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Erreur ${response.status}`);
+      }
+
+      const result = await response.json();
+      setSuccess(
+        `Présets mis à jour avec succès ! ${result.deleted} supprimés, ${result.created} créés.`
+      );
+
+      // Recharger la liste des présets
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour:", err);
+      setError(err.message || "Une erreur est survenue lors de la mise à jour");
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200">
       <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50 flex justify-between items-center">
@@ -139,29 +190,6 @@ export default function PresetList() {
             Gérez vos configurations prédéfinies pour la génération de boutique
           </p>
         </div>
-
-        {/* <div className="flex space-x-2">
-          <Link
-            href="/presets/add"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-            Nouveau preset
-          </Link>
-        </div> */}
       </div>
 
       <div className="p-4">
@@ -347,28 +375,51 @@ export default function PresetList() {
               Aucun preset disponible
             </h3>
             <p className="mt-1 text-gray-500">
-              Commencez par créer votre premier preset de boutique.
+              Commencez par créer votre premier preset de boutique ou mettez à
+              jour les présets par défaut.
             </p>
-            <Link
-              href="/presets/add"
-              className="mt-3 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            <div className="mt-3 flex justify-center space-x-3">
+              <Link
+                href="/presets/add"
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Créer un preset
-            </Link>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                Créer un preset
+              </Link>
+              <button
+                onClick={initializeDefaultPresets}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                Mettre à jour les présets
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 mb-6">
@@ -509,7 +560,7 @@ export default function PresetList() {
                                 d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
                               />
                             </svg>
-                            {Object.keys(preset.typeChances).length} types
+                            {Object.keys(preset.typeChances || {}).length} types
                           </div>
                           <div className="flex items-center text-xs text-gray-500">
                             <svg
@@ -526,8 +577,8 @@ export default function PresetList() {
                                 d="M13 10V3L4 14h7v7l9-11h-7z"
                               />
                             </svg>
-                            {Object.values(preset.rarityConfig).reduce(
-                              (sum, val) => sum + val,
+                            {Object.values(preset.rarityConfig || {}).reduce(
+                              (sum, val) => sum + (parseInt(val) || 0),
                               0
                             )}{" "}
                             objets

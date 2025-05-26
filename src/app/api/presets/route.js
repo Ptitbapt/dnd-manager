@@ -1,5 +1,10 @@
-// src/app/api/presets/route.js
-import { getPresets, createPreset } from "../../lib/presetUtils";
+// app/api/presets/route.js
+import {
+  getPresets,
+  createPreset,
+  deletePreset,
+  getDefaultPresets,
+} from "../../lib/presetUtils";
 import { initDatabase } from "../../lib/db";
 import { NextResponse } from "next/server";
 
@@ -33,7 +38,11 @@ export async function GET(request) {
   } catch (error) {
     console.error("Erreur lors de la récupération des présets:", error);
     return NextResponse.json(
-      { error: "Erreur lors de la récupération des présets" },
+      {
+        error:
+          "Erreur lors de la récupération des présets: " +
+          (error.message || "Erreur inconnue"),
+      },
       { status: 500 }
     );
   }
@@ -41,7 +50,7 @@ export async function GET(request) {
 
 /**
  * POST /api/presets
- * Crée un nouveau preset
+ * Crée un nouveau preset OU initialise les presets par défaut
  */
 export async function POST(request) {
   try {
@@ -53,8 +62,7 @@ export async function POST(request) {
     if (ongoingCreations.has(userIdentifier)) {
       return NextResponse.json(
         {
-          error:
-            "Une création de preset est déjà en cours. Veuillez patienter.",
+          error: "Une opération est déjà en cours. Veuillez patienter.",
         },
         { status: 429 } // Too Many Requests
       );
@@ -76,6 +84,94 @@ export async function POST(request) {
     // Récupérer les données de la requête
     const data = await request.json();
 
+    // Vérifier si c'est une demande d'initialisation des presets par défaut
+    if (data.action === "initialize") {
+      return await handleInitializePresets(userIdentifier);
+    }
+
+    // Sinon, traiter comme une création normale de preset
+    return await handleCreatePreset(data, userIdentifier);
+  } catch (error) {
+    console.error("Erreur lors du traitement de la requête:", error);
+
+    // S'assurer de nettoyer en cas d'erreur
+    const requestHeaders = new Headers(request.headers);
+    const userIdentifier = requestHeaders.get("x-forwarded-for") || "anonymous";
+    ongoingCreations.delete(userIdentifier);
+
+    return NextResponse.json(
+      {
+        error:
+          "Erreur lors du traitement: " + (error.message || "Erreur inconnue"),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Gère l'initialisation des presets par défaut
+ */
+async function handleInitializePresets(userIdentifier) {
+  try {
+    // Récupérer tous les presets existants
+    const existingPresets = await getPresets({});
+
+    // Filtrer les presets par défaut existants
+    const defaultPresets = existingPresets.filter((preset) => preset.isDefault);
+
+    // Supprimer les anciens presets par défaut
+    let deletedCount = 0;
+    for (const preset of defaultPresets) {
+      try {
+        await deletePreset(preset.id);
+        deletedCount++;
+      } catch (error) {
+        console.error(
+          `Erreur lors de la suppression du preset ${preset.id}:`,
+          error
+        );
+      }
+    }
+
+    // Créer les nouveaux presets par défaut
+    const defaultPresetsData = getDefaultPresets();
+    let createdCount = 0;
+
+    for (const presetData of defaultPresetsData) {
+      try {
+        await createPreset({
+          ...presetData,
+          isDefault: true,
+        });
+        createdCount++;
+      } catch (error) {
+        console.error(
+          `Erreur lors de la création du preset ${presetData.name}:`,
+          error
+        );
+      }
+    }
+
+    // Nettoyer après traitement
+    ongoingCreations.delete(userIdentifier);
+
+    return NextResponse.json({
+      message: "Presets par défaut mis à jour avec succès",
+      deleted: deletedCount,
+      created: createdCount,
+    });
+  } catch (error) {
+    ongoingCreations.delete(userIdentifier);
+    throw error;
+  }
+}
+
+/**
+ * Gère la création d'un preset normal
+ */
+async function handleCreatePreset(data, userIdentifier) {
+  try {
     // Valider les données
     if (!data.name || !data.wealthLevel || !data.shopType) {
       ongoingCreations.delete(userIdentifier); // Nettoyer en cas d'erreur
@@ -142,21 +238,8 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Erreur lors de la création du preset:", error);
-
-    // S'assurer de nettoyer en cas d'erreur
-    const requestHeaders = new Headers(request.headers);
-    const userIdentifier = requestHeaders.get("x-forwarded-for") || "anonymous";
     ongoingCreations.delete(userIdentifier);
-
-    return NextResponse.json(
-      {
-        error:
-          "Erreur lors de la création du preset: " +
-          (error.message || "Erreur inconnue"),
-      },
-      { status: 500 }
-    );
+    throw error;
   }
 }
 

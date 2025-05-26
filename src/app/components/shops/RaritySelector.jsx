@@ -1,4 +1,4 @@
-// src/app/components/shops/RaritySelector.jsx - Fichier complet modifié
+// src/app/components/shops/RaritySelector.jsx
 
 import { useState } from "react";
 
@@ -7,17 +7,16 @@ export default function RaritySelector({
   shopConfig,
   onRarityChange,
   onRandomize,
+  onClearAllRarities, // Nouvelle prop spécifique pour effacer les raretés
 }) {
   const [expanded, setExpanded] = useState(true);
 
   // Vérifier si rarities est un tableau
   if (!Array.isArray(rarities)) {
     console.error("Les raretés ne sont pas un tableau:", rarities);
-    // Utiliser un tableau vide pour éviter l'erreur
     rarities = [];
   }
 
-  // Fonction pour basculer l'expansion
   const toggleExpand = () => {
     setExpanded(!expanded);
   };
@@ -44,6 +43,30 @@ export default function RaritySelector({
         </h3>
 
         <div className="flex items-center space-x-2">
+          {/* Bouton Effacer tout - spécifique aux raretés */}
+          <button
+            type="button"
+            onClick={onClearAllRarities}
+            className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 mr-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            Effacer
+          </button>
+
+          {/* Bouton Aléatoire */}
           <button
             type="button"
             onClick={onRandomize}
@@ -66,6 +89,7 @@ export default function RaritySelector({
             Aléatoire
           </button>
 
+          {/* Bouton Replier/Déplier */}
           <button
             type="button"
             onClick={toggleExpand}

@@ -1,7 +1,6 @@
 // src/app/layout.tsx
 import "./globals.css";
 import Header from "./Header";
-import { initializeApp } from "./lib/initApp";
 
 export const metadata = {
   title: "Générateur de Boutiques D&D",
@@ -9,9 +8,22 @@ export const metadata = {
     "Application pour gérer les objets et générer des boutiques aléatoires pour vos sessions de Donjons et Dragons",
 };
 
-initializeApp().catch((error) => {
-  console.error("Erreur lors de l'initialisation de l'application:", error);
-});
+// Initialisation différée de l'application
+async function initializeAppAsync() {
+  try {
+    // Import dynamique pour éviter les erreurs de compilation
+    const { initializeApp } = await import("./lib/initApp");
+    await initializeApp();
+  } catch (error) {
+    console.error("Erreur lors de l'initialisation de l'application:", error);
+  }
+}
+
+// Lancer l'initialisation en arrière-plan
+if (typeof window === "undefined") {
+  // Côté serveur uniquement
+  initializeAppAsync();
+}
 
 export default function RootLayout({
   children,

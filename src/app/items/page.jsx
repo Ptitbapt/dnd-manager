@@ -55,16 +55,16 @@ export default function ItemsList() {
 
             console.log("Données reçues:", {
               items: itemsData,
+              itemsLength: Array.isArray(itemsData)
+                ? itemsData.length
+                : "pas un tableau",
+              itemsType: typeof itemsData,
               types: typesData,
               rarities: raritiesData,
             });
 
-            // Vérification et traitement des données reçues
-            const processedItems = Array.isArray(itemsData.items)
-              ? itemsData.items
-              : Array.isArray(itemsData)
-              ? itemsData
-              : [];
+            // Correction : L'API retourne directement le tableau d'items
+            const processedItems = Array.isArray(itemsData) ? itemsData : [];
 
             const processedTypes = Array.isArray(typesData.types)
               ? typesData.types
@@ -80,9 +80,21 @@ export default function ItemsList() {
 
             console.log("Données traitées:", {
               items: processedItems,
+              itemsLength: processedItems.length,
+              firstItem: processedItems[0] || "aucun item",
               types: processedTypes,
               rarities: processedRarities,
             });
+
+            // Debug spécifique si aucun item
+            if (processedItems.length === 0) {
+              console.log("🚨 AUCUN ITEM TROUVÉ!");
+              console.log("Réponse brute de l'API items:", itemsData);
+              console.log(
+                "Est-ce que itemsData est un tableau?",
+                Array.isArray(itemsData)
+              );
+            }
 
             setItems(processedItems);
             setTypes(processedTypes);
@@ -118,18 +130,49 @@ export default function ItemsList() {
     return value !== null && value !== undefined && typeof value === "string";
   };
 
-  // Filtrer les items avec vérification défensive
+  // Fonction pour vérifier si le terme de recherche est un nombre (pour l'ID)
+  const isNumericSearch = (term) => {
+    return !isNaN(term) && !isNaN(parseFloat(term)) && term.trim() !== "";
+  };
+
+  // Filtrer les items avec vérification défensive et recherche par ID
   const filteredItems = Array.isArray(items)
     ? items.filter((item) => {
-        // Vérifier que l'item est valide
-        if (!item || !isValidString(item.Nomobjet)) return false;
+        // Vérifier que l'item est valide - utiliser NomObjet
+        if (!item || !isValidString(item.NomObjet)) return false;
 
-        // Normalisation du texte de recherche et du nom de l'objet
-        const normalizedFilter = normalizeText(filter || "");
-        const normalizedName = normalizeText(item.Nomobjet);
+        // Filtre par nom ou ID
+        let nameOrIdMatches = false;
+        if (filter === "") {
+          nameOrIdMatches = true;
+        } else {
+          // Si le terme de recherche est numérique, chercher aussi par ID
+          if (isNumericSearch(filter)) {
+            const searchId = parseInt(filter);
+
+            // Vérification explicite de l'ID
+            const idMatches =
+              item.Index === searchId ||
+              item.IDX === searchId ||
+              String(item.Index) === filter ||
+              String(item.IDX) === filter;
+
+            // Recherche textuelle également
+            const nameMatches = normalizeText(item.NomObjet).includes(
+              normalizeText(filter || "")
+            );
+
+            nameOrIdMatches = idMatches || nameMatches;
+          } else {
+            // Recherche textuelle classique sur le nom
+            nameOrIdMatches = normalizeText(item.NomObjet).includes(
+              normalizeText(filter || "")
+            );
+          }
+        }
 
         return (
-          normalizedName.includes(normalizedFilter) &&
+          nameOrIdMatches &&
           (typeFilter === "" || item.Type === typeFilter) &&
           (rarityFilter === "" || item.Rarete === rarityFilter)
         );
@@ -143,7 +186,8 @@ export default function ItemsList() {
           method: "DELETE",
         });
         if (response.ok) {
-          setItems(items.filter((item) => item.IDX !== id));
+          // Utiliser Index pour filtrer après suppression
+          setItems(items.filter((item) => item.Index !== id));
         }
       } catch (error) {
         console.error("Erreur lors de la suppression de l'objet:", error);
@@ -219,9 +263,17 @@ export default function ItemsList() {
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 className="pl-10 pr-3 py-2 w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                placeholder="Nom de l'objet..."
+                placeholder="Nom de l'objet ou ID..."
               />
             </div>
+            {/* Indication du type de recherche */}
+            {filter && (
+              <p className="text-xs text-gray-500 mt-1">
+                {isNumericSearch(filter)
+                  ? "Recherche par ID et nom"
+                  : "Recherche par nom"}
+              </p>
+            )}
           </div>
 
           <div>
@@ -367,6 +419,9 @@ export default function ItemsList() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Index
+                        </th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Nom
                         </th>
                         <th className="px-1 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -389,16 +444,19 @@ export default function ItemsList() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {Array.isArray(filteredItems) &&
                         filteredItems.map((item) => (
-                          <tr key={item.IDX} className="hover:bg-gray-50">
+                          <tr key={item.Index} className="hover:bg-gray-50">
+                            <td className="px-3 py-4 whitespace-nowrap text-sm font-mono text-gray-500 w-[8%]">
+                              #{item.Index}
+                            </td>
                             <td className="py-3 px-4 text-sm font-medium text-gray-900 w-[20%]">
                               <a
-                                href={getAideDDUrl(item.Nomobjet)}
+                                href={getAideDDUrl(item.NomObjet)}
                                 target="_blank"
                                 className="hover:text-indigo-600 hover:underline flex items-center"
                                 rel="noopener noreferrer"
-                                title={`Voir sur AideDD: ${item.Nomobjet}`}
+                                title={`Voir sur AideDD: ${item.NomObjet}`}
                               >
-                                {item.Nomobjet}
+                                {item.NomObjet}
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
                                   className="h-3 w-3 ml-1 text-gray-400"
@@ -415,7 +473,7 @@ export default function ItemsList() {
                                 </svg>
                               </a>
                             </td>
-                            <td className="px-1 py-4 whitespace-nowrap text-sm text-gray-500 w-[25%]">
+                            <td className="px-1 py-4 whitespace-nowrap text-sm text-gray-500 w-[20%]">
                               <div className="flex items-center">
                                 <span
                                   className={`inline-flex items-center justify-center w-3 h-3 rounded-full mr-2 ${
@@ -425,10 +483,10 @@ export default function ItemsList() {
                                   }`}
                                 ></span>
                                 {item.Type}{" "}
-                                {item.Soustype ? `(${item.Soustype})` : ""}
+                                {item.SousType ? `(${item.SousType})` : ""}
                               </div>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 w-[15%]">
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 w-[12%]">
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-medium ${
                                   isValidString(item.Rarete)
@@ -439,24 +497,24 @@ export default function ItemsList() {
                                 {item.Rarete}
                               </span>
                             </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 w-[15%]">
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 w-[12%]">
                               {item.Valeur ? `${item.Valeur} PO` : "-"}
                             </td>
-                            <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-500 w-[15%]">
+                            <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-500 w-[12%]">
                               <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
                                 {item.Source}
                               </span>
                             </td>
-                            <td className="px-2 py-4 whitespace-nowrap text-right text-sm font-medium w-[10%]">
+                            <td className="px-2 py-4 whitespace-nowrap text-right text-sm font-medium w-[16%]">
                               <div className="flex items-center justify-end space-x-2">
                                 <Link
-                                  href={`/items/${item.IDX}`}
+                                  href={`/items/${item.Index}`}
                                   className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
                                   Modifier
                                 </Link>
                                 <button
-                                  onClick={() => handleDelete(item.IDX)}
+                                  onClick={() => handleDelete(item.Index)}
                                   className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                 >
                                   Supprimer

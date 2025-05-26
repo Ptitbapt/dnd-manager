@@ -1,5 +1,5 @@
 "use client";
-// app/items/[id]/page.jsx
+// app/items/[id]/page.jsx - Version finale pour la structure exacte de db_DMG.db
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { use } from "react";
@@ -58,7 +58,6 @@ export default function EditItem({ params }) {
             const typesResult = await typesResponse.json();
             console.log("Types response data:", typesResult);
 
-            // Gérer différents formats de réponse possibles
             typesData = Array.isArray(typesResult.types)
               ? typesResult.types
               : Array.isArray(typesResult)
@@ -68,7 +67,6 @@ export default function EditItem({ params }) {
             console.log("Types processed:", typesData);
           } catch (error) {
             console.error("Erreur lors du traitement des types:", error);
-            // Utiliser des valeurs par défaut
             typesData = ["Arme", "Armure", "Équipement", "Objet merveilleux"];
           }
         } else {
@@ -76,7 +74,6 @@ export default function EditItem({ params }) {
             "Impossible de récupérer les types:",
             typesResponse.status
           );
-          // Utiliser des valeurs par défaut
           typesData = ["Arme", "Armure", "Équipement", "Objet merveilleux"];
         }
 
@@ -87,7 +84,6 @@ export default function EditItem({ params }) {
             const raritiesResult = await raritiesResponse.json();
             console.log("Rarities response data:", raritiesResult);
 
-            // Gérer différents formats de réponse possibles
             raritiesData = Array.isArray(raritiesResult.rarities)
               ? raritiesResult.rarities
               : Array.isArray(raritiesResult)
@@ -97,13 +93,13 @@ export default function EditItem({ params }) {
             console.log("Rarities processed:", raritiesData);
           } catch (error) {
             console.error("Erreur lors du traitement des raretés:", error);
-            // Utiliser des valeurs par défaut
             raritiesData = [
-              "Commun",
-              "Peu commun",
-              "Rare",
-              "Très rare",
-              "Légendaire",
+              "0 - Neutre",
+              "1 - Commun",
+              "2 - Peu Commun",
+              "3 - Rare",
+              "4 - Très rare",
+              "5 - Légendaire",
             ];
           }
         } else {
@@ -111,13 +107,13 @@ export default function EditItem({ params }) {
             "Impossible de récupérer les raretés:",
             raritiesResponse.status
           );
-          // Utiliser des valeurs par défaut
           raritiesData = [
-            "Commun",
-            "Peu commun",
-            "Rare",
-            "Très rare",
-            "Légendaire",
+            "0 - Neutre",
+            "1 - Commun",
+            "2 - Peu Commun",
+            "3 - Rare",
+            "4 - Très rare",
+            "5 - Légendaire",
           ];
         }
 
@@ -126,17 +122,17 @@ export default function EditItem({ params }) {
         setRarities(raritiesData);
 
         // Association des champs de la base de données aux champs du formulaire
+        // Adaptation aux vrais noms de colonnes de db_DMG.db
         setInitialData({
-          name: item.Nomobjet || "",
+          name: item.NomObjet || "", // NomObjet
           type: item.Type || "",
-          subType: item.Soustype || "",
+          subType: item.SousType || "", // SousType
           proficiency: item.Maitrise || "",
           rarity: item.Rarete || "",
-          characteristics: item.Caractéristiques || "",
-          value:
-            item.Valeur !== null ? String(item.Valeur).replace(".", ",") : "",
-          additionalInfo: item.Infosupplémentaire || "",
-          weight: item.Poids !== null ? String(item.Poids) : "",
+          characteristics: item.Caracteristiques || "",
+          value: item.Valeur || "", // Garder comme string
+          additionalInfo: item.InfoSupplementaire || "", // InfoSupplementaire
+          weight: item.Poids || "",
           source: item.Source || "",
         });
       } catch (error) {
@@ -169,12 +165,10 @@ export default function EditItem({ params }) {
         // Redirection vers la liste des objets après la mise à jour
         router.push("/items");
       } else {
-        // Obtenir le statut de la réponse HTTP
         const status = response.status;
 
         let errorText = "Erreur lors de la mise à jour de l'objet";
         try {
-          // Tenter de lire le corps de la réponse
           const text = await response.text();
           console.log("Réponse d'erreur complète:", text);
           if (text) {

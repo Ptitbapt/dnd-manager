@@ -1,10 +1,8 @@
-// src/app/lib/db.js - Fichier complet modifié
-
+// lib/db.js - Version ultra finale avec les vrais noms de colonnes
 import { PrismaClient } from "@prisma/client";
 
 // Vérifier l'environnement d'exécution - client ou serveur
 const isPrismaAvailable = () => {
-  // Si window est défini, nous sommes côté client et ne devons pas utiliser Prisma directement
   if (typeof window !== "undefined") {
     return false;
   }
@@ -20,7 +18,6 @@ const prismaClientSingleton = () => {
   return new PrismaClient();
 };
 
-// Avoid creating multiple Prisma instances in development
 const globalForPrisma = global;
 
 export const prisma = globalForPrisma.prisma || prismaClientSingleton();
@@ -56,44 +53,18 @@ export async function initDatabase() {
 }
 
 /**
- * Fonction sécurisée pour récupérer un preset via l'API
- * À utiliser dans les composants client
- */
-export async function fetchPresetById(id) {
-  try {
-    const response = await fetch(`/api/presets/${id}`);
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Erreur ${response.status}`);
-    }
-    const data = await response.json();
-    return data.preset;
-  } catch (error) {
-    console.error("Erreur lors de la récupération du preset:", error);
-    throw error;
-  }
-}
-
-/**
  * Fonction sécurisée pour récupérer tous les types et raretés via API
  * À utiliser dans les composants client
  */
 export async function fetchTypesAndRarities() {
   try {
-    // Récupérer les types
-    const typesResponse = await fetch("/api/items?action=types");
-    if (!typesResponse.ok) {
-      throw new Error(
-        `Erreur lors de la récupération des types: ${typesResponse.status}`
-      );
-    }
+    const [typesResponse, raritiesResponse] = await Promise.all([
+      fetch("/api/items?action=types"),
+      fetch("/api/items?action=rarities"),
+    ]);
 
-    // Récupérer les raretés
-    const raritiesResponse = await fetch("/api/items?action=rarities");
-    if (!raritiesResponse.ok) {
-      throw new Error(
-        `Erreur lors de la récupération des raretés: ${raritiesResponse.status}`
-      );
+    if (!typesResponse.ok || !raritiesResponse.ok) {
+      throw new Error("Erreur lors de la récupération des données");
     }
 
     const typesData = await typesResponse.json();
@@ -110,24 +81,58 @@ export async function fetchTypesAndRarities() {
       "Erreur lors de la récupération des types et raretés:",
       error
     );
-    // Retourner des valeurs par défaut en cas d'erreur
     return {
-      types: ["Armes", "Armures", "Équipement", "Outils", "Objet merveilleux"],
-      rarities: ["Commun", "Peu commun", "Rare", "Très rare", "Légendaire"],
+      types: ["Arme", "Armure", "Équipement", "Outils", "Objet merveilleux"],
+      rarities: [
+        "0 - Neutre",
+        "1 - Commun",
+        "2 - Peu Commun",
+        "3 - Rare",
+        "4 - Très rare",
+        "5 - Légendaire",
+      ],
     };
   }
 }
 
-// Les fonctions suivantes ne doivent être utilisées que dans des composants serveur ou des API routes
+// Fonctions côté serveur uniquement
 
 /**
- * Get all items from the database
+ * Get all items from the database with optional filtering
  */
-export async function getAllItems() {
+export async function getAllItems(filters = {}) {
   if (!isPrismaAvailable() || !prisma) {
     throw new Error("Non disponible dans l'environnement actuel");
   }
-  return await prisma.iTEMS.findMany();
+
+  const { search, type, rarity } = filters;
+
+  const where = {};
+
+  if (search) {
+    where.NomObjet = {
+      contains: search,
+      mode: "insensitive",
+    };
+  }
+
+  if (type) {
+    where.Type = type;
+  }
+
+  if (rarity) {
+    where.Rarete = rarity;
+  }
+
+  try {
+    return await prisma.ITEMS.findMany({
+      where: Object.keys(where).length > 0 ? where : undefined,
+      orderBy: { NomObjet: "asc" }, // Utiliser NomObjet pour l'ordre
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des items:", error);
+    throw error;
+  }
 }
 
 /**
@@ -138,9 +143,15 @@ export async function getItemById(id) {
   if (!isPrismaAvailable() || !prisma) {
     throw new Error("Non disponible dans l'environnement actuel");
   }
-  return await prisma.iTEMS.findUnique({
-    where: { IDX: Number(id) },
-  });
+
+  try {
+    return await prisma.ITEMS.findUnique({
+      where: { Index: Number(id) }, // Utiliser Index comme clé primaire
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l'item:", error);
+    throw error;
+  }
 }
 
 /**
@@ -155,21 +166,17 @@ export async function createItem(item) {
   console.log("Création d'un nouvel objet avec les données:", item);
 
   try {
-    // Convertir la valeur en chaîne de caractères si elle existe
-    // Puisque le champ Valeur attend une String et non un Int
-    const value = item.value ? String(item.value.replace(",", ".")) : null;
-
-    const result = await prisma.iTEMS.create({
+    const result = await prisma.ITEMS.create({
       data: {
-        Nomobjet: item.name,
+        NomObjet: item.name, // Utiliser NomObjet
         Type: item.type,
-        Soustype: item.subType || null,
+        SousType: item.subType || null, // Utiliser SousType
         Maitrise: item.proficiency || null,
         Rarete: item.rarity,
         Caracteristiques: item.characteristics || null,
-        Valeur: item.value ? String(item.value).replace(",", ".") : null, // Comme chaîne
-        Infosupplementaire: item.additionalInfo || null,
-        Poids: item.weight || null, // On ne convertit pas en nombre ici non plus
+        Valeur: item.value || null, // Garder comme string selon votre format
+        InfoSupplementaire: item.additionalInfo || null, // Utiliser InfoSupplementaire
+        Poids: item.weight || null,
         Source: item.source,
       },
     });
@@ -191,21 +198,27 @@ export async function updateItem(id, item) {
   if (!isPrismaAvailable() || !prisma) {
     throw new Error("Non disponible dans l'environnement actuel");
   }
-  return await prisma.iTEMS.update({
-    where: { IDX: Number(id) },
-    data: {
-      Nomobjet: item.name,
-      Type: item.type,
-      Soustype: item.subType || null,
-      Maitrise: item.proficiency || null,
-      Rarete: item.rarity,
-      Caractéristiques: item.characteristics || null,
-      Valeur: item.value ? parseFloat(item.value) : null,
-      Infosupplémentaire: item.additionalInfo || null,
-      Poids: item.weight || null,
-      Source: item.source,
-    },
-  });
+
+  try {
+    return await prisma.ITEMS.update({
+      where: { Index: Number(id) }, // Utiliser Index comme clé primaire
+      data: {
+        NomObjet: item.name, // Utiliser NomObjet
+        Type: item.type,
+        SousType: item.subType || null, // Utiliser SousType
+        Maitrise: item.proficiency || null,
+        Rarete: item.rarity,
+        Caracteristiques: item.characteristics || null,
+        Valeur: item.value || null,
+        InfoSupplementaire: item.additionalInfo || null, // Utiliser InfoSupplementaire
+        Poids: item.weight || null,
+        Source: item.source,
+      },
+    });
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de l'objet:", error);
+    throw error;
+  }
 }
 
 /**
@@ -217,20 +230,17 @@ export async function deleteItem(id) {
     throw new Error("Non disponible dans l'environnement actuel");
   }
 
-  console.log(`Suppression de l'objet avec ID: ${id} (type: ${typeof id})`);
+  console.log(`Suppression de l'objet avec ID: ${id}`);
 
   try {
-    // Convertir ID en nombre si c'est une chaîne
     const itemId = Number(id);
 
     if (isNaN(itemId)) {
       throw new Error(`ID invalide: ${id} n'est pas un nombre valide`);
     }
 
-    console.log(`Suppression de l'objet avec IDX: ${itemId}`);
-
-    const result = await prisma.iTEMS.delete({
-      where: { IDX: itemId },
+    const result = await prisma.ITEMS.delete({
+      where: { Index: itemId }, // Utiliser Index comme clé primaire
     });
 
     console.log("Objet supprimé avec succès:", result);
@@ -241,7 +251,6 @@ export async function deleteItem(id) {
       error
     );
 
-    // Fournir des informations supplémentaires pour le débogage en fonction du type d'erreur
     if (error.code === "P2025") {
       throw new Error(`Objet avec ID ${id} non trouvé dans la base de données`);
     }
@@ -257,13 +266,19 @@ export async function getStats() {
   if (!isPrismaAvailable() || !prisma) {
     throw new Error("Non disponible dans l'environnement actuel");
   }
-  const itemCount = await prisma.iTEMS.count();
-  const shopCount = await prisma.shop.count();
 
-  return {
-    itemCount,
-    shopCount,
-  };
+  try {
+    const itemCount = await prisma.ITEMS.count();
+    const shopCount = await prisma.Shop.count();
+
+    return {
+      itemCount,
+      shopCount,
+    };
+  } catch (error) {
+    console.error("Erreur lors de la récupération des statistiques:", error);
+    return { itemCount: 0, shopCount: 0 };
+  }
 }
 
 /**
@@ -276,11 +291,11 @@ export async function getUniqueTypes() {
 
   try {
     console.log("Appel à getUniqueTypes");
-    const items = await prisma.iTEMS.findMany({
+
+    const items = await prisma.ITEMS.findMany({
       select: { Type: true },
       distinct: ["Type"],
       where: {
-        // Exclure les valeurs null ou vides
         Type: {
           not: null,
           notIn: ["", " "],
@@ -288,24 +303,21 @@ export async function getUniqueTypes() {
       },
     });
 
-    // Extraire et filtrer les types
     const types = items
       .map((item) => item.Type)
-      .filter((type) => type && type.trim() !== ""); // Éliminer les types vides
+      .filter((type) => type && type.trim() !== "");
 
     console.log(`${types.length} types uniques trouvés:`, types);
 
-    // Si aucun type n'est trouvé, retourner des valeurs par défaut
     if (types.length === 0) {
       console.log("Aucun type trouvé, retour des valeurs par défaut");
-      return ["Armes", "Armures", "Équipement", "Outils", "Objet merveilleux"];
+      return ["Arme", "Armure", "Équipement", "Outils", "Objet merveilleux"];
     }
 
     return types;
   } catch (error) {
     console.error("Erreur dans getUniqueTypes:", error);
-    // En cas d'erreur, retourner des types par défaut
-    return ["Armes", "Armures", "Équipement", "Outils", "Objet merveilleux"];
+    return ["Arme", "Armure", "Équipement", "Outils", "Objet merveilleux"];
   }
 }
 
@@ -319,11 +331,11 @@ export async function getUniqueRarities() {
 
   try {
     console.log("Appel à getUniqueRarities");
-    const items = await prisma.iTEMS.findMany({
+
+    const items = await prisma.ITEMS.findMany({
       select: { Rarete: true },
       distinct: ["Rarete"],
       where: {
-        // Exclure les valeurs null ou vides
         Rarete: {
           not: null,
           notIn: ["", " "],
@@ -331,39 +343,34 @@ export async function getUniqueRarities() {
       },
     });
 
-    // Extraire et filtrer les raretés
     const rarities = items
       .map((item) => item.Rarete)
-      .filter((rarity) => rarity && rarity.trim() !== ""); // Éliminer les raretés vides
+      .filter((rarity) => rarity && rarity.trim() !== "");
 
     console.log(`${rarities.length} raretés uniques trouvées:`, rarities);
 
-    // Si aucune rareté n'est trouvée, retourner des valeurs par défaut
     if (rarities.length === 0) {
       console.log("Aucune rareté trouvée, retour des valeurs par défaut");
       return [
-        "Neutre",
-        "Commun",
-        "Variable",
-        "Peu commun",
-        "Rare",
-        "Très rare",
-        "Légendaire",
+        "0 - Neutre",
+        "1 - Commun",
+        "2 - Peu Commun",
+        "3 - Rare",
+        "4 - Très rare",
+        "5 - Légendaire",
       ];
     }
 
     return rarities;
   } catch (error) {
     console.error("Erreur dans getUniqueRarities:", error);
-    // En cas d'erreur, retourner des raretés par défaut
     return [
-      "Neutre",
-      "Commun",
-      "Variable",
-      "Peu commun",
-      "Rare",
-      "Très rare",
-      "Légendaire",
+      "0 - Neutre",
+      "1 - Commun",
+      "2 - Peu Commun",
+      "3 - Rare",
+      "4 - Très rare",
+      "5 - Légendaire",
     ];
   }
 }

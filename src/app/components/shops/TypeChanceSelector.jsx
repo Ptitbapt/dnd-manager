@@ -1,25 +1,24 @@
-// src/app/components/shops/TypeChanceSelector.jsx - Fichier complet modifié
+// src/app/components/shops/TypeSelector.jsx (ou le nom de votre composant pour les types)
 
 import { useState } from "react";
 
 export default function TypeChanceSelector({
   types,
   shopConfig,
-  onTypeChanceChange,
-  onNormalize,
-  onRandomize,
   totalPercentage,
+  onTypeChange,
+  onRandomize,
+  onNormalize,
+  onClearAllTypes, // Nouvelle prop spécifique pour effacer les types
 }) {
   const [expanded, setExpanded] = useState(true);
 
   // Vérifier si types est un tableau
   if (!Array.isArray(types)) {
     console.error("Les types ne sont pas un tableau:", types);
-    // Utiliser un tableau vide pour éviter l'erreur
     types = [];
   }
 
-  // Fonction pour basculer l'expansion
   const toggleExpand = () => {
     setExpanded(!expanded);
   };
@@ -30,7 +29,7 @@ export default function TypeChanceSelector({
         <h3 className="text-md font-medium text-gray-700 flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 mr-2 text-indigo-500"
+            className="h-5 w-5 mr-2 text-green-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -46,6 +45,30 @@ export default function TypeChanceSelector({
         </h3>
 
         <div className="flex items-center space-x-2">
+          {/* Bouton Effacer tout - spécifique aux types */}
+          <button
+            type="button"
+            onClick={onClearAllTypes}
+            className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 mr-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            Effacer
+          </button>
+
+          {/* Bouton Aléatoire */}
           <button
             type="button"
             onClick={onRandomize}
@@ -68,6 +91,30 @@ export default function TypeChanceSelector({
             Aléatoire
           </button>
 
+          {/* Bouton Normaliser */}
+          <button
+            type="button"
+            onClick={onNormalize}
+            className="inline-flex items-center px-3 py-1 bg-indigo-600 text-white shadow-sm text-sm leading-4 font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 mr-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            Normaliser
+          </button>
+
+          {/* Bouton Replier/Déplier */}
           <button
             type="button"
             onClick={toggleExpand}
@@ -108,87 +155,71 @@ export default function TypeChanceSelector({
         </div>
       </div>
 
-      <div className="flex justify-between items-center mb-3">
-        <p className="text-sm text-gray-500">
-          Définissez la répartition des types d'objets en pourcentage.
-        </p>
-
-        <button
-          type="button"
-          onClick={onNormalize}
-          className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 mr-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
-            />
-          </svg>
-          Normaliser
-        </button>
-      </div>
-
-      <div className="flex justify-end">
-        <div
-          className={`text-sm font-medium ${
-            totalPercentage === 100
-              ? "text-green-600"
-              : totalPercentage < 100
-              ? "text-amber-600"
-              : "text-red-600"
-          }`}
-        >
-          Total: {totalPercentage}%
-        </div>
-      </div>
+      <p className="text-sm text-gray-500 mb-3">
+        Définissez la répartition en pourcentage des différents types d'objets
+        dans la boutique.
+      </p>
 
       {expanded && (
-        <div className="mt-2 space-y-4">
-          {types.map((type) => {
-            const value = shopConfig.typeChances[type] || 0;
-            return (
-              <div key={type} className="flex items-center">
-                <label
-                  htmlFor={`type-${type}`}
-                  className="block text-sm font-medium text-gray-700 mr-2 w-44 truncate"
-                  title={type}
-                >
-                  {type}
-                </label>
-                <div className="relative flex-grow">
-                  <input
-                    type="range"
-                    id={`type-${type}-range`}
-                    min="0"
-                    max="100"
-                    value={value}
-                    onChange={(e) => onTypeChanceChange(type, e.target.value)}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <input
-                    type="number"
-                    id={`type-${type}`}
-                    min="0"
-                    max="100"
-                    value={value}
-                    onChange={(e) => onTypeChanceChange(type, e.target.value)}
-                    className="w-20 px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ml-3"
-                  />
-                  <span className="absolute right-2 top-1.5 text-gray-500 sm:text-sm">
-                    %
-                  </span>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {types.map((type) => {
+              const value = shopConfig.typeChances[type] || 0;
+              return (
+                <div key={type}>
+                  <label
+                    htmlFor={`type-${type}`}
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {type}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      id={`type-${type}`}
+                      min="0"
+                      max="100"
+                      value={value}
+                      onChange={(e) => onTypeChange(type, e.target.value)}
+                      className="block w-full px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="0"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">%</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* Affichage du total des pourcentages */}
+          <div className="mt-4 flex justify-between items-center">
+            <span className="text-sm text-gray-600">
+              Total des pourcentages :
+            </span>
+            <span
+              className={`font-bold text-lg ${
+                totalPercentage === 100
+                  ? "text-green-600"
+                  : totalPercentage > 100
+                  ? "text-red-600"
+                  : "text-orange-600"
+              }`}
+            >
+              {totalPercentage}%
+            </span>
+          </div>
+
+          {/* Avertissement si le total n'est pas 100% */}
+          {totalPercentage !== 100 && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-800">
+                ⚠️ Les pourcentages doivent totaliser exactement 100%. Utilisez
+                le bouton "Normaliser" pour ajuster automatiquement.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

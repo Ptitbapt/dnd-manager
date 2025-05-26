@@ -80,9 +80,16 @@ export default function ItemSelector({ onAddItem }) {
 
           console.log("Données récupérées:", {
             items: itemsData.length,
+            itemsStructure: itemsData.slice(0, 2), // Afficher les 2 premiers items
             types: typesData,
             rarities: raritiesData,
           });
+
+          // Debug spécifique pour comprendre pourquoi la liste est vide
+          if (itemsData.length === 0) {
+            console.log("ATTENTION: Aucun item récupéré!");
+            console.log("Réponse brute des items:", itemsResult);
+          }
         } catch (parseError) {
           console.error("Erreur lors du parsing des données:", parseError);
           throw new Error("Erreur lors de l'analyse des données reçues");
@@ -108,20 +115,78 @@ export default function ItemSelector({ onAddItem }) {
     fetchData();
   }, []);
 
+  // Fonction pour vérifier si le terme de recherche est un nombre (pour l'ID)
+  const isNumericSearch = (term) => {
+    return !isNaN(term) && !isNaN(parseFloat(term)) && term.trim() !== "";
+  };
+
   // Filtrer les items à chaque changement de critères
   useEffect(() => {
     if (!Array.isArray(items) || items.length === 0) return;
 
+    console.log("Filtrage avec terme de recherche:", searchTerm);
+    console.log("Nombre d'items total:", items.length);
+
     const filtered = items.filter((item) => {
       if (!item) return false;
 
-      // Filtre par nom (insensible à la casse et aux accents)
-      const nameMatches =
-        searchTerm === "" ||
-        (typeof item.Nomobjet === "string" &&
-          normalizeText(item.Nomobjet).includes(
-            normalizeText(searchTerm || "")
-          ));
+      // Debug : afficher quelques items pour vérifier la structure
+      if (items.indexOf(item) < 3) {
+        console.log("Structure de l'item:", {
+          Index: item.Index,
+          IDX: item.IDX,
+          NomObjet: item.NomObjet,
+          Nomobjet: item.Nomobjet,
+        });
+      }
+
+      // Filtre par nom ou ID
+      let nameOrIdMatches = false;
+      if (searchTerm === "") {
+        nameOrIdMatches = true;
+      } else {
+        // Si le terme de recherche est numérique, chercher aussi par ID
+        if (isNumericSearch(searchTerm)) {
+          const searchId = parseInt(searchTerm);
+          console.log("Recherche par ID:", searchId);
+
+          // Vérification explicite de l'ID
+          const idMatches =
+            item.Index === searchId ||
+            item.IDX === searchId ||
+            String(item.Index) === searchTerm ||
+            String(item.IDX) === searchTerm;
+
+          // Recherche textuelle également
+          const nameMatches =
+            (typeof item.NomObjet === "string" &&
+              normalizeText(item.NomObjet).includes(
+                normalizeText(searchTerm || "")
+              )) ||
+            (typeof item.Nomobjet === "string" &&
+              normalizeText(item.Nomobjet).includes(
+                normalizeText(searchTerm || "")
+              ));
+
+          nameOrIdMatches = idMatches || nameMatches;
+
+          // Debug pour l'item 51 spécifiquement
+          if (searchId === 51 && (item.Index === 51 || item.IDX === 51)) {
+            console.log("Item 51 trouvé:", item);
+          }
+        } else {
+          // Recherche textuelle classique sur le nom
+          nameOrIdMatches =
+            (typeof item.NomObjet === "string" &&
+              normalizeText(item.NomObjet).includes(
+                normalizeText(searchTerm || "")
+              )) ||
+            (typeof item.Nomobjet === "string" &&
+              normalizeText(item.Nomobjet).includes(
+                normalizeText(searchTerm || "")
+              ));
+        }
+      }
 
       // Filtre par type
       const typeMatches = selectedType === "" || item.Type === selectedType;
@@ -130,9 +195,10 @@ export default function ItemSelector({ onAddItem }) {
       const rarityMatches =
         selectedRarity === "" || item.Rarete === selectedRarity;
 
-      return nameMatches && typeMatches && rarityMatches;
+      return nameOrIdMatches && typeMatches && rarityMatches;
     });
 
+    console.log("Nombre d'items filtrés:", filtered.length);
     setFilteredItems(filtered);
   }, [searchTerm, selectedType, selectedRarity, items]);
 
@@ -162,7 +228,7 @@ export default function ItemSelector({ onAddItem }) {
               id="searchTerm"
               type="text"
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Nom de l'objet..."
+              placeholder="Nom de l'objet ou ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -181,6 +247,14 @@ export default function ItemSelector({ onAddItem }) {
               </svg>
             </div>
           </div>
+          {/* Indication du type de recherche */}
+          {searchTerm && (
+            <p className="text-xs text-gray-500 mt-1">
+              {isNumericSearch(searchTerm)
+                ? "Recherche par ID et nom"
+                : "Recherche par nom"}
+            </p>
+          )}
         </div>
 
         <div>
@@ -304,6 +378,12 @@ export default function ItemSelector({ onAddItem }) {
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
+                        Index
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
                         Nom
                       </th>
                       <th
@@ -336,7 +416,7 @@ export default function ItemSelector({ onAddItem }) {
                     {safeFilteredItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan="5"
+                          colSpan="6"
                           className="px-6 py-4 text-center text-sm text-gray-500"
                         >
                           Aucun objet ne correspond à votre recherche
@@ -344,17 +424,23 @@ export default function ItemSelector({ onAddItem }) {
                       </tr>
                     ) : (
                       safeFilteredItems.map((item) => (
-                        <tr key={item.IDX} className="hover:bg-gray-50">
+                        <tr
+                          key={item.Index || item.IDX}
+                          className="hover:bg-gray-50"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
+                            #{item.Index || item.IDX}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             <ItemLink
-                              name={item.Nomobjet}
+                              name={item.NomObjet || item.Nomobjet}
                               className="text-indigo-600"
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <TypeBadge
                               type={item.Type}
-                              subtype={item.Soustype}
+                              subtype={item.SousType || item.Soustype}
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

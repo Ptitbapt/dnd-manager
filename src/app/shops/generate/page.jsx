@@ -260,6 +260,40 @@ export default function GenerateShop() {
     }
   };
 
+  // Fonction pour effacer seulement les valeurs de rareté
+  const clearAllRarityValues = () => {
+    const clearedConfig = { ...shopConfig };
+
+    // Mettre toutes les valeurs de rareté à 0
+    clearedConfig.itemsPerRarity = {};
+    metadata.rarities.forEach((rarity) => {
+      clearedConfig.itemsPerRarity[rarity] = 0;
+    });
+
+    // Garder les typeChances inchangés
+    updateShopConfig(clearedConfig, uiState.totalPercentage);
+  };
+
+  // Fonction pour effacer seulement les valeurs de types
+  const clearAllTypeValues = () => {
+    const clearedConfig = { ...shopConfig };
+
+    // Mettre toutes les valeurs de types à 0
+    clearedConfig.typeChances = {};
+    metadata.types.forEach((type) => {
+      clearedConfig.typeChances[type] = 0;
+    });
+
+    // Recalculer le pourcentage total (qui sera 0)
+    const newPercentage = Object.values(clearedConfig.typeChances).reduce(
+      (sum, value) => sum + (parseInt(value) || 0),
+      0
+    );
+
+    // Garder les itemsPerRarity inchangés
+    updateShopConfig(clearedConfig, newPercentage);
+  };
+
   // Sauvegarde de la boutique
   const saveShop = async () => {
     if (!shopDetails.name.trim()) {
@@ -375,8 +409,10 @@ export default function GenerateShop() {
         {/* Sélecteur de présets */}
         {uiState.showPresetSelector ? (
           <div className="mb-6">
-            <PresetSelector onPresetSelect={handlePresetSelect} />
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-gray-800">
+                Choisir un preset
+              </h2>
               <button
                 type="button"
                 onClick={togglePresetSelector}
@@ -399,6 +435,7 @@ export default function GenerateShop() {
                 Ignorer les présets
               </button>
             </div>
+            <PresetSelector onPresetSelect={handlePresetSelect} />
           </div>
         ) : (
           <div className="flex justify-end mb-4">
@@ -433,6 +470,8 @@ export default function GenerateShop() {
           uiState={uiState}
           onConfigChange={updateShopConfig}
           onGenerate={generateShop}
+          onClearAllRarities={clearAllRarityValues}
+          onClearAllTypes={clearAllTypeValues}
         />
 
         {/* Section des objets générés */}
