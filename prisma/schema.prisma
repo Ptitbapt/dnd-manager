@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,41 +9,41 @@ datasource db {
 
 model ShopPreset {
   id           Int      @id @default(autoincrement())
-  name         String
+  name         String   @db.VarChar(255)
   description  String?
-  wealthlevel  String   @map("wealthlevel")    // Changé !
-  shoptype     String   @map("shoptype")      // Changé !
-  typechances  String   @map("typechances")   // Changé !
-  rarityconfig String   @map("rarityconfig")  // Changé !
-  isdefault    Boolean  @default(false) @map("isdefault")  // Changé !
-  createdat    DateTime @default(now()) @map("createdat")  // Changé !
-  updatedat    DateTime @updatedAt @map("updatedat")       // Changé !
+  wealthlevel  String   @map("wealthlevel") @db.VarChar(50)
+  shoptype     String   @map("shoptype") @db.VarChar(100)
+  typechances  String   @map("typechances")
+  rarityconfig String   @map("rarityconfig")
+  isdefault    Boolean  @default(false) @map("isdefault")
+  createdat    DateTime @default(now()) @map("createdat") @db.Timestamp(6)
+  updatedat    DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamp(6)
 
   @@map("shoppreset")
 }
 
 model Items {
-  index               Int     @id @default(autoincrement())
-  nomobjet           String? @map("nomobjet")           // Changé !
-  type               String?
-  soustype           String? @map("soustype")           // Changé !
-  maitrise           String?
-  rarete             String?
+  index              Int     @id @default(autoincrement())
+  nomobjet           String? @map("nomobjet") @db.VarChar(255)
+  type               String? @db.VarChar(100)
+  soustype           String? @map("soustype") @db.VarChar(100)
+  maitrise           String? @db.VarChar(100)
+  rarete             String? @db.VarChar(50)
   caracteristiques   String?
-  valeur             String?
-  infosupplementaire String? @map("infosupplementaire") // Changé !
-  poids              String?
-  source             String?
+  valeur             String? @db.VarChar(50)
+  infosupplementaire String? @map("infosupplementaire")
+  poids              String? @db.VarChar(50)
+  source             String? @db.VarChar(100)
 
   @@map("items")
 }
 
 model Shop {
   id          Int      @id @default(autoincrement())
-  name        String
+  name        String   @db.VarChar(255)
   description String?
-  items       String   // JSON en tant que String
-  createdat   DateTime @default(now()) @map("createdat") // Changé !
+  items       String
+  createdat   DateTime @default(now()) @map("createdat") @db.Timestamp(6)
 
   @@map("shop")
 }

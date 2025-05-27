@@ -7,3 +7,4 @@ restartPolicyType = "on_failure"
 
 [environments.production.variables]
 NODE_ENV = "production"
+SKIP_ENV_VALIDATION = "true"
