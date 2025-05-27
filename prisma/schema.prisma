@@ -1,49 +1,50 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model ITEMS {
-  Index              Int     @id @default(autoincrement())
-  NomObjet           String?
-  Type               String?
-  SousType           String?
-  Maitrise           String?
-  Rarete             String?
-  Caracteristiques   String?
-  Valeur             String?
-  InfoSupplementaire String?
-  Poids              String?
-  Source             String?
+model ShopPreset {
+  id           Int      @id @default(autoincrement())
+  name         String
+  description  String?
+  wealthlevel  String   @map("wealthlevel")    // Changé !
+  shoptype     String   @map("shoptype")      // Changé !
+  typechances  String   @map("typechances")   // Changé !
+  rarityconfig String   @map("rarityconfig")  // Changé !
+  isdefault    Boolean  @default(false) @map("isdefault")  // Changé !
+  createdat    DateTime @default(now()) @map("createdat")  // Changé !
+  updatedat    DateTime @updatedAt @map("updatedat")       // Changé !
 
-  @@map("ITEMS")
+  @@map("shoppreset")
+}
+
+model Items {
+  index               Int     @id @default(autoincrement())
+  nomobjet           String? @map("nomobjet")           // Changé !
+  type               String?
+  soustype           String? @map("soustype")           // Changé !
+  maitrise           String?
+  rarete             String?
+  caracteristiques   String?
+  valeur             String?
+  infosupplementaire String? @map("infosupplementaire") // Changé !
+  poids              String?
+  source             String?
+
+  @@map("items")
 }
 
 model Shop {
   id          Int      @id @default(autoincrement())
   name        String
   description String?
-  items       String
-  createdAt   DateTime @default(now())
+  items       String   // JSON en tant que String
+  createdat   DateTime @default(now()) @map("createdat") // Changé !
 
-  @@map("Shop")
-}
-
-model ShopPreset {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  wealthLevel String   // "pauvre", "standard", "luxueux"
-  shopType    String   // "armurier", "magicien", "alchimiste", etc.
-  typeChances String   // JSON string des pourcentages par type
-  rarityConfig String  // JSON string de la configuration des raretés
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("ShopPreset")
+  @@map("shop")
 }

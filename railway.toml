@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "chmod +x scripts/start.sh && ./scripts/start.sh"
 restartPolicyType = "on_failure"
 
 [environments.production.variables]
