@@ -2,9 +2,8 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "chmod +x scripts/start.sh && ./scripts/start.sh"
+startCommand = "npx prisma migrate deploy && npm start"
 restartPolicyType = "on_failure"
 
 [environments.production.variables]
 NODE_ENV = "production"
-DATABASE_URL = "file:./prod.db"
