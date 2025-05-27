@@ -1,4 +1,4 @@
-// lib/presetUtils.js
+// lib/presetUtils.js - Version corrigée pour PostgreSQL
 import { prisma } from "./db";
 import { defaultPresets } from "./defaultPresets";
 
@@ -29,8 +29,9 @@ export function normalizePreset(preset) {
   // Création d'une copie pour éviter de modifier l'original
   const normalizedPreset = { ...preset };
 
-  // Normalisation de typeChances
-  let typeChances = normalizedPreset.typeChances;
+  // Normalisation de typeChances (ou typechances selon la source)
+  let typeChances =
+    normalizedPreset.typeChances || normalizedPreset.typechances;
 
   // Si c'est une chaîne JSON, la parser
   if (typeof typeChances === "string") {
@@ -99,8 +100,9 @@ export function normalizePreset(preset) {
     console.log(`Après normalisation, le total est de ${finalTotal}%`);
   }
 
-  // Normalisation de rarityConfig
-  let rarityConfig = normalizedPreset.rarityConfig;
+  // Normalisation de rarityConfig (ou rarityconfig selon la source)
+  let rarityConfig =
+    normalizedPreset.rarityConfig || normalizedPreset.rarityconfig;
 
   // Si c'est une chaîne JSON, la parser
   if (typeof rarityConfig === "string") {
@@ -209,17 +211,17 @@ export async function getPresets(options = {}) {
   const whereClause = {};
 
   if (wealthLevel) {
-    whereClause.wealthLevel = wealthLevel;
+    whereClause.wealthlevel = wealthLevel; // Corrigé : wealthlevel minuscule
   }
 
   if (shopType) {
-    whereClause.shopType = shopType;
+    whereClause.shoptype = shopType; // Corrigé : shoptype minuscule
   }
 
   try {
     const presets = await prisma.shopPreset.findMany({
       where: whereClause,
-      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+      orderBy: [{ isdefault: "desc" }, { name: "asc" }], // Corrigé : isdefault minuscule
     });
 
     // Normaliser chaque preset avant de le retourner
@@ -273,11 +275,12 @@ export async function createPreset(preset) {
       data: {
         name: normalizedPreset.name,
         description: normalizedPreset.description || null,
-        wealthLevel: normalizedPreset.wealthLevel,
-        shopType: normalizedPreset.shopType,
-        typeChances: JSON.stringify(normalizedPreset.typeChances),
-        rarityConfig: JSON.stringify(normalizedPreset.rarityConfig),
-        isDefault: normalizedPreset.isDefault || false,
+        wealthlevel:
+          normalizedPreset.wealthLevel || normalizedPreset.wealthlevel, // Support des deux formats
+        shoptype: normalizedPreset.shopType || normalizedPreset.shoptype, // Support des deux formats
+        typechances: JSON.stringify(normalizedPreset.typeChances), // Corrigé : typechances minuscule
+        rarityconfig: JSON.stringify(normalizedPreset.rarityConfig), // Corrigé : rarityconfig minuscule
+        isdefault: normalizedPreset.isdefault || false, // Corrigé : isdefault minuscule
       },
     });
   } catch (error) {
@@ -304,10 +307,10 @@ export async function updatePreset(id, preset) {
 
   const normalizedPreset = normalizePreset(preset);
 
-  // Pour les presets par défaut, ne pas modifier le statut isDefault
-  let isDefault = normalizedPreset.isDefault;
-  if (existingPreset.isDefault) {
-    isDefault = true;
+  // Pour les presets par défaut, ne pas modifier le statut isdefault
+  let isdefault = normalizedPreset.isdefault;
+  if (existingPreset.isdefault) {
+    isdefault = true;
   }
 
   try {
@@ -316,11 +319,12 @@ export async function updatePreset(id, preset) {
       data: {
         name: normalizedPreset.name,
         description: normalizedPreset.description || null,
-        wealthLevel: normalizedPreset.wealthLevel,
-        shopType: normalizedPreset.shopType,
-        typeChances: JSON.stringify(normalizedPreset.typeChances),
-        rarityConfig: JSON.stringify(normalizedPreset.rarityConfig),
-        isDefault: isDefault,
+        wealthlevel:
+          normalizedPreset.wealthLevel || normalizedPreset.wealthlevel, // Support des deux formats
+        shoptype: normalizedPreset.shopType || normalizedPreset.shoptype, // Support des deux formats
+        typechances: JSON.stringify(normalizedPreset.typeChances), // Corrigé : typechances minuscule
+        rarityconfig: JSON.stringify(normalizedPreset.rarityConfig), // Corrigé : rarityconfig minuscule
+        isdefault: isdefault, // Corrigé : isdefault minuscule
       },
     });
   } catch (error) {
@@ -366,7 +370,7 @@ export async function initializeDefaultPresets() {
   try {
     // Vérifier si les présets par défaut existent déjà
     const existingDefaultPreset = await prisma.shopPreset.findFirst({
-      where: { isDefault: true },
+      where: { isdefault: true }, // Corrigé : isdefault minuscule
     });
 
     // S'ils n'existent pas, les créer
@@ -379,11 +383,12 @@ export async function initializeDefaultPresets() {
           data: {
             name: normalizedPreset.name,
             description: normalizedPreset.description || null,
-            wealthLevel: normalizedPreset.wealthLevel,
-            shopType: normalizedPreset.shopType,
-            typeChances: JSON.stringify(normalizedPreset.typeChances),
-            rarityConfig: JSON.stringify(normalizedPreset.rarityConfig),
-            isDefault: normalizedPreset.isDefault || false,
+            wealthlevel:
+              normalizedPreset.wealthLevel || normalizedPreset.wealthlevel, // Support des deux formats
+            shoptype: normalizedPreset.shopType || normalizedPreset.shoptype, // Support des deux formats
+            typechances: JSON.stringify(normalizedPreset.typeChances), // Corrigé : typechances minuscule
+            rarityconfig: JSON.stringify(normalizedPreset.rarityConfig), // Corrigé : rarityconfig minuscule
+            isdefault: normalizedPreset.isdefault || false, // Corrigé : isdefault minuscule
           },
         });
       }

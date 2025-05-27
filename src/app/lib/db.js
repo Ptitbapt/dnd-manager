@@ -1,4 +1,4 @@
-// lib/db.js - Version ultra finale avec les vrais noms de colonnes
+// lib/db.js - Version corrigée pour PostgreSQL
 import { PrismaClient } from "@prisma/client";
 
 // Vérifier l'environnement d'exécution - client ou serveur
@@ -110,24 +110,25 @@ export async function getAllItems(filters = {}) {
   const where = {};
 
   if (search) {
-    where.NomObjet = {
+    where.nomobjet = {
       contains: search,
       mode: "insensitive",
     };
   }
 
   if (type) {
-    where.Type = type;
+    where.type = type;
   }
 
   if (rarity) {
-    where.Rarete = rarity;
+    where.rarete = rarity;
   }
 
   try {
-    return await prisma.ITEMS.findMany({
+    console.log("Recherche avec les filtres:", where);
+    return await prisma.items.findMany({
       where: Object.keys(where).length > 0 ? where : undefined,
-      orderBy: { NomObjet: "asc" }, // Utiliser NomObjet pour l'ordre
+      orderBy: { nomobjet: "asc" },
     });
   } catch (error) {
     console.error("Erreur lors de la récupération des items:", error);
@@ -145,8 +146,8 @@ export async function getItemById(id) {
   }
 
   try {
-    return await prisma.ITEMS.findUnique({
-      where: { Index: Number(id) }, // Utiliser Index comme clé primaire
+    return await prisma.items.findUnique({
+      where: { index: Number(id) },
     });
   } catch (error) {
     console.error("Erreur lors de la récupération de l'item:", error);
@@ -166,18 +167,18 @@ export async function createItem(item) {
   console.log("Création d'un nouvel objet avec les données:", item);
 
   try {
-    const result = await prisma.ITEMS.create({
+    const result = await prisma.items.create({
       data: {
-        NomObjet: item.name, // Utiliser NomObjet
-        Type: item.type,
-        SousType: item.subType || null, // Utiliser SousType
-        Maitrise: item.proficiency || null,
-        Rarete: item.rarity,
-        Caracteristiques: item.characteristics || null,
-        Valeur: item.value || null, // Garder comme string selon votre format
-        InfoSupplementaire: item.additionalInfo || null, // Utiliser InfoSupplementaire
-        Poids: item.weight || null,
-        Source: item.source,
+        nomobjet: item.name,
+        type: item.type,
+        soustype: item.subType || null,
+        maitrise: item.proficiency || null,
+        rarete: item.rarity,
+        caracteristiques: item.characteristics || null,
+        valeur: item.value || null,
+        infosupplementaire: item.additionalInfo || null,
+        poids: item.weight || null,
+        source: item.source,
       },
     });
 
@@ -200,19 +201,19 @@ export async function updateItem(id, item) {
   }
 
   try {
-    return await prisma.ITEMS.update({
-      where: { Index: Number(id) }, // Utiliser Index comme clé primaire
+    return await prisma.items.update({
+      where: { index: Number(id) },
       data: {
-        NomObjet: item.name, // Utiliser NomObjet
-        Type: item.type,
-        SousType: item.subType || null, // Utiliser SousType
-        Maitrise: item.proficiency || null,
-        Rarete: item.rarity,
-        Caracteristiques: item.characteristics || null,
-        Valeur: item.value || null,
-        InfoSupplementaire: item.additionalInfo || null, // Utiliser InfoSupplementaire
-        Poids: item.weight || null,
-        Source: item.source,
+        nomobjet: item.name,
+        type: item.type,
+        soustype: item.subType || null,
+        maitrise: item.proficiency || null,
+        rarete: item.rarity,
+        caracteristiques: item.characteristics || null,
+        valeur: item.value || null,
+        infosupplementaire: item.additionalInfo || null,
+        poids: item.weight || null,
+        source: item.source,
       },
     });
   } catch (error) {
@@ -239,8 +240,8 @@ export async function deleteItem(id) {
       throw new Error(`ID invalide: ${id} n'est pas un nombre valide`);
     }
 
-    const result = await prisma.ITEMS.delete({
-      where: { Index: itemId }, // Utiliser Index comme clé primaire
+    const result = await prisma.items.delete({
+      where: { index: itemId },
     });
 
     console.log("Objet supprimé avec succès:", result);
@@ -268,8 +269,8 @@ export async function getStats() {
   }
 
   try {
-    const itemCount = await prisma.ITEMS.count();
-    const shopCount = await prisma.Shop.count();
+    const itemCount = await prisma.items.count();
+    const shopCount = await prisma.shop.count();
 
     return {
       itemCount,
@@ -292,11 +293,11 @@ export async function getUniqueTypes() {
   try {
     console.log("Appel à getUniqueTypes");
 
-    const items = await prisma.ITEMS.findMany({
-      select: { Type: true },
-      distinct: ["Type"],
+    const items = await prisma.items.findMany({
+      select: { type: true },
+      distinct: ["type"],
       where: {
-        Type: {
+        type: {
           not: null,
           notIn: ["", " "],
         },
@@ -304,7 +305,7 @@ export async function getUniqueTypes() {
     });
 
     const types = items
-      .map((item) => item.Type)
+      .map((item) => item.type)
       .filter((type) => type && type.trim() !== "");
 
     console.log(`${types.length} types uniques trouvés:`, types);
@@ -332,11 +333,11 @@ export async function getUniqueRarities() {
   try {
     console.log("Appel à getUniqueRarities");
 
-    const items = await prisma.ITEMS.findMany({
-      select: { Rarete: true },
-      distinct: ["Rarete"],
+    const items = await prisma.items.findMany({
+      select: { rarete: true },
+      distinct: ["rarete"],
       where: {
-        Rarete: {
+        rarete: {
           not: null,
           notIn: ["", " "],
         },
@@ -344,7 +345,7 @@ export async function getUniqueRarities() {
     });
 
     const rarities = items
-      .map((item) => item.Rarete)
+      .map((item) => item.rarete)
       .filter((rarity) => rarity && rarity.trim() !== "");
 
     console.log(`${rarities.length} raretés uniques trouvées:`, rarities);

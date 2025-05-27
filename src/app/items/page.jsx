@@ -59,6 +59,10 @@ export default function ItemsList() {
                 ? itemsData.length
                 : "pas un tableau",
               itemsType: typeof itemsData,
+              firstItem:
+                Array.isArray(itemsData) && itemsData.length > 0
+                  ? itemsData[0]
+                  : "aucun item",
               types: typesData,
               rarities: raritiesData,
             });
@@ -136,10 +140,11 @@ export default function ItemsList() {
   };
 
   // Filtrer les items avec vérification défensive et recherche par ID
+  // CORRECTION: Utiliser les noms de colonnes PostgreSQL (minuscules)
   const filteredItems = Array.isArray(items)
     ? items.filter((item) => {
-        // Vérifier que l'item est valide - utiliser NomObjet
-        if (!item || !isValidString(item.NomObjet)) return false;
+        // Vérifier que l'item est valide - utiliser nomobjet (PostgreSQL)
+        if (!item || !isValidString(item.nomobjet)) return false;
 
         // Filtre par nom ou ID
         let nameOrIdMatches = false;
@@ -150,22 +155,19 @@ export default function ItemsList() {
           if (isNumericSearch(filter)) {
             const searchId = parseInt(filter);
 
-            // Vérification explicite de l'ID
+            // Vérification explicite de l'ID (utiliser index pour PostgreSQL)
             const idMatches =
-              item.Index === searchId ||
-              item.IDX === searchId ||
-              String(item.Index) === filter ||
-              String(item.IDX) === filter;
+              item.index === searchId || String(item.index) === filter;
 
             // Recherche textuelle également
-            const nameMatches = normalizeText(item.NomObjet).includes(
+            const nameMatches = normalizeText(item.nomobjet).includes(
               normalizeText(filter || "")
             );
 
             nameOrIdMatches = idMatches || nameMatches;
           } else {
             // Recherche textuelle classique sur le nom
-            nameOrIdMatches = normalizeText(item.NomObjet).includes(
+            nameOrIdMatches = normalizeText(item.nomobjet).includes(
               normalizeText(filter || "")
             );
           }
@@ -173,8 +175,8 @@ export default function ItemsList() {
 
         return (
           nameOrIdMatches &&
-          (typeFilter === "" || item.Type === typeFilter) &&
-          (rarityFilter === "" || item.Rarete === rarityFilter)
+          (typeFilter === "" || item.type === typeFilter) &&
+          (rarityFilter === "" || item.rarete === rarityFilter)
         );
       })
     : [];
@@ -186,8 +188,8 @@ export default function ItemsList() {
           method: "DELETE",
         });
         if (response.ok) {
-          // Utiliser Index pour filtrer après suppression
-          setItems(items.filter((item) => item.Index !== id));
+          // Utiliser index pour filtrer après suppression
+          setItems(items.filter((item) => item.index !== id));
         }
       } catch (error) {
         console.error("Erreur lors de la suppression de l'objet:", error);
@@ -444,19 +446,19 @@ export default function ItemsList() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {Array.isArray(filteredItems) &&
                         filteredItems.map((item) => (
-                          <tr key={item.Index} className="hover:bg-gray-50">
+                          <tr key={item.index} className="hover:bg-gray-50">
                             <td className="px-3 py-4 whitespace-nowrap text-sm font-mono text-gray-500 w-[8%]">
-                              #{item.Index}
+                              #{item.index}
                             </td>
                             <td className="py-3 px-4 text-sm font-medium text-gray-900 w-[20%]">
                               <a
-                                href={getAideDDUrl(item.NomObjet)}
+                                href={getAideDDUrl(item.nomobjet)}
                                 target="_blank"
                                 className="hover:text-indigo-600 hover:underline flex items-center"
                                 rel="noopener noreferrer"
-                                title={`Voir sur AideDD: ${item.NomObjet}`}
+                                title={`Voir sur AideDD: ${item.nomobjet}`}
                               >
-                                {item.NomObjet}
+                                {item.nomobjet}
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
                                   className="h-3 w-3 ml-1 text-gray-400"
@@ -477,44 +479,44 @@ export default function ItemsList() {
                               <div className="flex items-center">
                                 <span
                                   className={`inline-flex items-center justify-center w-3 h-3 rounded-full mr-2 ${
-                                    isValidString(item.Type)
-                                      ? getTypeColor(item.Type)
+                                    isValidString(item.type)
+                                      ? getTypeColor(item.type)
                                       : "bg-indigo-500"
                                   }`}
                                 ></span>
-                                {item.Type}{" "}
-                                {item.SousType ? `(${item.SousType})` : ""}
+                                {item.type}{" "}
+                                {item.soustype ? `(${item.soustype})` : ""}
                               </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 w-[12%]">
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                  isValidString(item.Rarete)
-                                    ? getRarityClasses(item.Rarete)
+                                  isValidString(item.rarete)
+                                    ? getRarityClasses(item.rarete)
                                     : "bg-gray-200 text-gray-800"
                                 }`}
                               >
-                                {item.Rarete}
+                                {item.rarete}
                               </span>
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 w-[12%]">
-                              {item.Valeur ? `${item.Valeur} PO` : "-"}
+                              {item.valeur ? `${item.valeur} PO` : "-"}
                             </td>
                             <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-500 w-[12%]">
                               <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                                {item.Source}
+                                {item.source}
                               </span>
                             </td>
                             <td className="px-2 py-4 whitespace-nowrap text-right text-sm font-medium w-[16%]">
                               <div className="flex items-center justify-end space-x-2">
                                 <Link
-                                  href={`/items/${item.Index}`}
+                                  href={`/items/${item.index}`}
                                   className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
                                   Modifier
                                 </Link>
                                 <button
-                                  onClick={() => handleDelete(item.Index)}
+                                  onClick={() => handleDelete(item.index)}
                                   className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                 >
                                   Supprimer
