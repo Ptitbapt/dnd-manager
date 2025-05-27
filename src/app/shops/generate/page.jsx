@@ -376,14 +376,15 @@ function GenerateShopContent() {
     setShopDetails((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Gestion des objets de la boutique
+  // Fonction utilitaire pour obtenir l'ID d'un item (compatible PostgreSQL)
+  const getItemId = (item) => {
+    return item.index || item.id;
+  };
+
+  // Gestion des objets de la boutique - CORRECTION pour PostgreSQL
   const addItemToShop = (item) => {
-    const itemId = item.IDX || item.Index;
-    if (
-      !shopItems.some(
-        (existingItem) => (existingItem.IDX || existingItem.Index) === itemId
-      )
-    ) {
+    const itemId = getItemId(item);
+    if (!shopItems.some((existingItem) => getItemId(existingItem) === itemId)) {
       setShopItems([...shopItems, item]);
       setMessages({ success: "Objet ajouté à la boutique", error: "" });
       setTimeout(() => setMessages({ success: "", error: "" }), 2000);
@@ -397,19 +398,29 @@ function GenerateShopContent() {
   };
 
   const removeItemFromShop = (itemId) => {
-    setShopItems(
-      shopItems.filter((item) => (item.IDX || item.Index) !== itemId)
-    );
+    setShopItems(shopItems.filter((item) => getItemId(item) !== itemId));
     setMessages({ success: "Objet retiré de la boutique", error: "" });
     setTimeout(() => setMessages({ success: "", error: "" }), 2000);
   };
 
   // Nouvelle fonction pour mettre à jour un objet dans la boutique
   const updateItemInShop = (itemId, updatedItem) => {
+    console.log("updateItemInShop appelé avec:", { itemId, updatedItem });
+
     setShopItems((prevItems) =>
-      prevItems.map((item) =>
-        (item.IDX || item.Index) === itemId ? updatedItem : item
-      )
+      prevItems.map((item) => {
+        const currentId = getItemId(item);
+        if (currentId === itemId) {
+          console.log(
+            "Mise à jour de l'item:",
+            currentId,
+            "avec:",
+            updatedItem
+          );
+          return updatedItem;
+        }
+        return item;
+      })
     );
     setMessages({ success: "Objet modifié dans la boutique", error: "" });
     setTimeout(() => setMessages({ success: "", error: "" }), 2000);

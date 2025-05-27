@@ -120,6 +120,35 @@ export default function ItemSelector({ onAddItem }) {
     return !isNaN(term) && !isNaN(parseFloat(term)) && term.trim() !== "";
   };
 
+  // CORRECTION: Fonctions utilitaires pour PostgreSQL
+  const getItemId = (item) => {
+    return item.index || item.id;
+  };
+
+  const getItemName = (item) => {
+    return item.nomobjet || item.name;
+  };
+
+  const getItemType = (item) => {
+    return item.type;
+  };
+
+  const getItemSubType = (item) => {
+    return item.soustype || item.subType;
+  };
+
+  const getItemRarity = (item) => {
+    return item.rarete || item.rarity;
+  };
+
+  const getItemValue = (item) => {
+    return item.valeur || item.value;
+  };
+
+  const getItemSource = (item) => {
+    return item.source;
+  };
+
   // Filtrer les items à chaque changement de critères
   useEffect(() => {
     if (!Array.isArray(items) || items.length === 0) return;
@@ -133,10 +162,9 @@ export default function ItemSelector({ onAddItem }) {
       // Debug : afficher quelques items pour vérifier la structure
       if (items.indexOf(item) < 3) {
         console.log("Structure de l'item:", {
-          Index: item.Index,
-          IDX: item.IDX,
-          NomObjet: item.NomObjet,
-          Nomobjet: item.Nomobjet,
+          index: getItemId(item),
+          nomobjet: getItemName(item),
+          type: getItemType(item),
         });
       }
 
@@ -150,50 +178,39 @@ export default function ItemSelector({ onAddItem }) {
           const searchId = parseInt(searchTerm);
           console.log("Recherche par ID:", searchId);
 
-          // Vérification explicite de l'ID
+          // Vérification explicite de l'ID (CORRECTION: utiliser getItemId)
           const idMatches =
-            item.Index === searchId ||
-            item.IDX === searchId ||
-            String(item.Index) === searchTerm ||
-            String(item.IDX) === searchTerm;
+            getItemId(item) === searchId ||
+            String(getItemId(item)) === searchTerm;
 
-          // Recherche textuelle également
+          // Recherche textuelle également (CORRECTION: utiliser getItemName)
+          const itemName = getItemName(item);
           const nameMatches =
-            (typeof item.NomObjet === "string" &&
-              normalizeText(item.NomObjet).includes(
-                normalizeText(searchTerm || "")
-              )) ||
-            (typeof item.Nomobjet === "string" &&
-              normalizeText(item.Nomobjet).includes(
-                normalizeText(searchTerm || "")
-              ));
+            typeof itemName === "string" &&
+            normalizeText(itemName).includes(normalizeText(searchTerm || ""));
 
           nameOrIdMatches = idMatches || nameMatches;
 
-          // Debug pour l'item 51 spécifiquement
-          if (searchId === 51 && (item.Index === 51 || item.IDX === 51)) {
-            console.log("Item 51 trouvé:", item);
+          // Debug pour l'item spécifique
+          if (searchId === getItemId(item)) {
+            console.log(`Item ${searchId} trouvé:`, item);
           }
         } else {
-          // Recherche textuelle classique sur le nom
+          // Recherche textuelle classique sur le nom (CORRECTION: utiliser getItemName)
+          const itemName = getItemName(item);
           nameOrIdMatches =
-            (typeof item.NomObjet === "string" &&
-              normalizeText(item.NomObjet).includes(
-                normalizeText(searchTerm || "")
-              )) ||
-            (typeof item.Nomobjet === "string" &&
-              normalizeText(item.Nomobjet).includes(
-                normalizeText(searchTerm || "")
-              ));
+            typeof itemName === "string" &&
+            normalizeText(itemName).includes(normalizeText(searchTerm || ""));
         }
       }
 
-      // Filtre par type
-      const typeMatches = selectedType === "" || item.Type === selectedType;
+      // Filtre par type (CORRECTION: utiliser getItemType)
+      const typeMatches =
+        selectedType === "" || getItemType(item) === selectedType;
 
-      // Filtre par rareté
+      // Filtre par rareté (CORRECTION: utiliser getItemRarity)
       const rarityMatches =
-        selectedRarity === "" || item.Rarete === selectedRarity;
+        selectedRarity === "" || getItemRarity(item) === selectedRarity;
 
       return nameOrIdMatches && typeMatches && rarityMatches;
     });
@@ -272,8 +289,8 @@ export default function ItemSelector({ onAddItem }) {
           >
             <option value="">Tous les types</option>
             {Array.isArray(types) &&
-              types.map((type) => (
-                <option key={type} value={type}>
+              types.map((type, index) => (
+                <option key={`type-${index}-${type}`} value={type}>
                   {type}
                 </option>
               ))}
@@ -295,8 +312,8 @@ export default function ItemSelector({ onAddItem }) {
           >
             <option value="">Toutes les raretés</option>
             {Array.isArray(rarities) &&
-              rarities.map((rarity) => (
-                <option key={rarity} value={rarity}>
+              rarities.map((rarity, index) => (
+                <option key={`rarity-${index}-${rarity}`} value={rarity}>
                   {rarity}
                 </option>
               ))}
@@ -424,30 +441,29 @@ export default function ItemSelector({ onAddItem }) {
                       </tr>
                     ) : (
                       safeFilteredItems.map((item) => (
-                        <tr
-                          key={item.Index || item.IDX}
-                          className="hover:bg-gray-50"
-                        >
+                        <tr key={getItemId(item)} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
-                            #{item.Index || item.IDX}
+                            #{getItemId(item)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             <ItemLink
-                              name={item.NomObjet || item.Nomobjet}
+                              name={getItemName(item)}
                               className="text-indigo-600"
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <TypeBadge
-                              type={item.Type}
-                              subtype={item.SousType || item.Soustype}
+                              type={getItemType(item)}
+                              subtype={getItemSubType(item)}
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <RarityBadge rarity={item.Rarete} />
+                            <RarityBadge rarity={getItemRarity(item)} />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {item.Valeur ? `${item.Valeur} PO` : "-"}
+                            {getItemValue(item)
+                              ? `${getItemValue(item)} PO`
+                              : "-"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button

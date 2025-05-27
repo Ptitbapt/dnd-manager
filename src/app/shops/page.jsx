@@ -105,39 +105,33 @@ export default function ShopsList() {
     }
   };
 
-  // Fonction pour obtenir l'ID de l'item (compatible avec les deux formats)
+  // CORRECTION: Fonctions utilitaires adaptées pour PostgreSQL (noms minuscules)
   const getItemId = (item) => {
-    return item.Index || item.IDX || item.id;
+    return item.index || item.id;
   };
 
-  // Fonction pour obtenir le nom de l'item (compatible avec les deux formats)
   const getItemName = (item) => {
-    return item.NomObjet || item.Nomobjet || item.name;
+    return item.nomobjet || item.name;
   };
 
-  // Fonction pour obtenir le type de l'item (compatible avec les deux formats)
   const getItemType = (item) => {
-    return item.Type || item.type;
+    return item.type;
   };
 
-  // Fonction pour obtenir le sous-type de l'item (compatible avec les deux formats)
   const getItemSubType = (item) => {
-    return item.SousType || item.Soustype || item.subType;
+    return item.soustype || item.subType;
   };
 
-  // Fonction pour obtenir la rareté de l'item (compatible avec les deux formats)
   const getItemRarity = (item) => {
-    return item.Rarete || item.rarity;
+    return item.rarete || item.rarity;
   };
 
-  // Fonction pour obtenir la valeur de l'item (compatible avec les deux formats)
   const getItemValue = (item) => {
-    return item.Valeur || item.value;
+    return item.valeur || item.value;
   };
 
-  // Fonction pour obtenir la source de l'item (compatible avec les deux formats)
   const getItemSource = (item) => {
-    return item.Source || item.source;
+    return item.source;
   };
 
   // Icône pour la section des boutiques
@@ -304,7 +298,10 @@ export default function ShopsList() {
                             {shop.name}
                           </h3>
                           <p className="text-xs text-gray-500 mt-1 ml-5">
-                            {new Date(shop.createdAt).toLocaleDateString()}
+                            {/* CORRECTION: Utiliser 'createdat' pour PostgreSQL */}
+                            {new Date(
+                              shop.createdat || shop.createdAt
+                            ).toLocaleDateString()}
                           </p>
                         </div>
                         <button

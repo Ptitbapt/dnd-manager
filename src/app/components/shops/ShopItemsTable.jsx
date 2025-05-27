@@ -23,14 +23,56 @@ export default function ShopItemsTable({
     );
   }
 
+  // CORRECTION: Fonctions utilitaires pour PostgreSQL
+  const getItemId = (item) => {
+    return item.index || item.id;
+  };
+
+  const getItemName = (item) => {
+    return item.nomobjet || item.name;
+  };
+
+  const getItemType = (item) => {
+    return item.type;
+  };
+
+  const getItemSubType = (item) => {
+    return item.soustype || item.subType;
+  };
+
+  const getItemRarity = (item) => {
+    return item.rarete || item.rarity;
+  };
+
+  const getItemValue = (item) => {
+    return item.valeur || item.value;
+  };
+
+  const getItemWeight = (item) => {
+    return item.poids || item.weight;
+  };
+
+  const getItemCharacteristics = (item) => {
+    return item.caracteristiques || item.characteristics;
+  };
+
+  const getItemAdditionalInfo = (item) => {
+    return item.infosupplementaire || item.additionalInfo;
+  };
+
+  const getItemSource = (item) => {
+    return item.source;
+  };
+
   // Démarrer l'édition d'un item
   const startEditing = (item) => {
-    setEditingItem(item.IDX || item.Index);
+    const itemId = getItemId(item);
+    setEditingItem(itemId);
     setEditValues({
-      value: parseFloat(item.Valeur) || 0,
-      weight: parseFloat(item.Poids) || 0,
-      characteristics: item.Caracteristiques || "",
-      additionalInfo: item.InfoSupplementaire || item.Infosupplementaire || "",
+      value: parseFloat(getItemValue(item)) || 0,
+      weight: parseFloat(getItemWeight(item)) || 0,
+      characteristics: getItemCharacteristics(item) || "",
+      additionalInfo: getItemAdditionalInfo(item) || "",
     });
   };
 
@@ -43,14 +85,33 @@ export default function ShopItemsTable({
   // Sauvegarder les modifications
   const saveEditing = () => {
     if (editingItem && onUpdateItem) {
+      const currentItem = shopItems.find(
+        (item) => getItemId(item) === editingItem
+      );
+
+      // CORRECTION: Créer l'objet mis à jour avec tous les champs nécessaires
       const updatedItem = {
-        ...shopItems.find((item) => (item.IDX || item.Index) === editingItem),
+        ...currentItem,
+        // PostgreSQL (minuscules) - PRINCIPAUX
+        valeur: editValues.value.toString(),
+        poids: editValues.weight.toString(),
+        caracteristiques: editValues.characteristics,
+        infosupplementaire: editValues.additionalInfo,
+        // Compatibilité avec les anciens noms (majuscules) - FALLBACK
         Valeur: editValues.value.toString(),
         Poids: editValues.weight.toString(),
         Caracteristiques: editValues.characteristics,
         InfoSupplementaire: editValues.additionalInfo,
-        Infosupplementaire: editValues.additionalInfo, // Support pour les deux noms de champs
+        Infosupplementaire: editValues.additionalInfo,
+        // Noms anglais pour compatibilité totale
+        value: editValues.value.toString(),
+        weight: editValues.weight.toString(),
+        characteristics: editValues.characteristics,
+        additionalInfo: editValues.additionalInfo,
       };
+
+      console.log("Objet mis à jour envoyé:", updatedItem);
+      console.log("Nouvelle valeur:", editValues.value);
 
       onUpdateItem(editingItem, updatedItem);
     }
@@ -110,7 +171,7 @@ export default function ShopItemsTable({
         </thead>
         <tbody>
           {shopItems.map((item, index) => {
-            const itemId = item.IDX || item.Index;
+            const itemId = getItemId(item);
             const isEditing = editingItem === itemId;
 
             return (
@@ -119,16 +180,16 @@ export default function ShopItemsTable({
                 className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
               >
                 <td className="whitespace-nowrap py-3 px-4 text-sm font-medium text-gray-900">
-                  <ItemLink name={item.Nomobjet || item.NomObjet} />
+                  <ItemLink name={getItemName(item)} />
                 </td>
                 <td className="whitespace-nowrap py-3 px-4 text-sm text-gray-700">
                   <TypeBadge
-                    type={item.Type}
-                    subtype={item.Soustype || item.SousType}
+                    type={getItemType(item)}
+                    subtype={getItemSubType(item)}
                   />
                 </td>
                 <td className="whitespace-nowrap py-3 px-4 text-sm text-gray-700">
-                  <RarityBadge rarity={item.Rarete} />
+                  <RarityBadge rarity={getItemRarity(item)} />
                 </td>
                 <td className="py-3 px-4 text-sm text-gray-700">
                   {isEditing ? (
@@ -160,7 +221,7 @@ export default function ShopItemsTable({
                       className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
                       onClick={() => startEditing(item)}
                     >
-                      {item.Valeur ? `${item.Valeur} PO` : "-"}
+                      {getItemValue(item) ? `${getItemValue(item)} PO` : "-"}
                     </span>
                   )}
                 </td>
@@ -193,7 +254,7 @@ export default function ShopItemsTable({
                       className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
                       onClick={() => startEditing(item)}
                     >
-                      {item.Poids ? `${item.Poids} kg` : "-"}
+                      {getItemWeight(item) ? `${getItemWeight(item)} kg` : "-"}
                     </span>
                   )}
                 </td>
@@ -213,15 +274,15 @@ export default function ShopItemsTable({
                     <span
                       className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded block truncate"
                       onClick={() => startEditing(item)}
-                      title={item.Caracteristiques}
+                      title={getItemCharacteristics(item)}
                     >
-                      {item.Caracteristiques || "-"}
+                      {getItemCharacteristics(item) || "-"}
                     </span>
                   )}
                 </td>
                 <td className="whitespace-nowrap py-3 px-4 text-sm text-gray-700">
                   <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                    {item.Source}
+                    {getItemSource(item)}
                   </span>
                 </td>
                 <td className="whitespace-nowrap py-3 px-4 text-sm text-gray-700">

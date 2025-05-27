@@ -1,4 +1,4 @@
-// lib/shopGenerator.js - Version adaptée pour sauvegarder les objets modifiés
+// lib/shopGenerator.js - Version adaptée pour PostgreSQL
 import { prisma } from "./db";
 
 /**
@@ -79,9 +79,9 @@ export async function generateShop(config) {
  * @returns {Promise<Array>} Liste des objets sélectionnés
  */
 async function selectItemsByRarityAndType(rarity, count, typeChances) {
-  // Récupérer tous les objets de la rareté spécifiée - utiliser ITEMS au lieu de iTEMS
-  const itemsByRarity = await prisma.ITEMS.findMany({
-    where: { Rarete: rarity },
+  // CORRECTION: Utiliser les noms PostgreSQL (minuscules)
+  const itemsByRarity = await prisma.items.findMany({
+    where: { rarete: rarity },
   });
 
   if (itemsByRarity.length === 0) {
@@ -113,24 +113,25 @@ async function selectItemsByRarityAndType(rarity, count, typeChances) {
     // Déterminer le type en fonction des pourcentages de chance
     const selectedType = selectRandomType(normalizedChances);
 
-    // Filtrer les objets par type sélectionné
+    // Filtrer les objets par type sélectionné (CORRECTION: utiliser 'type' minuscule)
     const itemsByType = itemsByRarity.filter(
-      (item) => item.Type === selectedType
+      (item) => item.type === selectedType
     );
 
     // S'il n'y a pas d'objets du type sélectionné, prendre n'importe quel objet de cette rareté
     const eligibleItems = itemsByType.length > 0 ? itemsByType : itemsByRarity;
 
     // Sélectionner un objet aléatoire parmi les objets éligibles (qui n'a pas déjà été sélectionné)
+    // CORRECTION: utiliser 'index' minuscule
     const notSelectedItems = eligibleItems.filter(
-      (item) => !selectedIds.has(item.Index) // Utiliser Index au lieu de IDX
+      (item) => !selectedIds.has(item.index)
     );
 
     if (notSelectedItems.length > 0) {
       const randomIndex = Math.floor(Math.random() * notSelectedItems.length);
       const selectedItem = notSelectedItems[randomIndex];
       selectedItems.push(selectedItem);
-      selectedIds.add(selectedItem.Index); // Utiliser Index au lieu de IDX
+      selectedIds.add(selectedItem.index); // CORRECTION: utiliser 'index' minuscule
     } else if (eligibleItems.length > 0 && selectedItems.length < count) {
       // Si tous les objets ont déjà été sélectionnés mais que nous n'avons pas atteint le nombre demandé
       // Autoriser les doublons en dernier recours
@@ -196,34 +197,31 @@ export async function saveShop(name, description, items) {
     // Sauvegarder les objets complets avec leurs modifications
     // Au lieu de sauvegarder juste les IDs, on sauvegarde les objets modifiés
     const itemsToSave = items.map((item) => {
-      // Garder la structure complète de l'objet avec ses modifications
+      // CORRECTION: Adaptation pour PostgreSQL (noms en minuscules)
       return {
-        id: item.Index || item.IDX || item.id,
-        name: item.NomObjet || item.Nomobjet || item.name,
-        type: item.Type || item.type,
-        subType: item.SousType || item.Soustype || item.subType,
-        rarity: item.Rarete || item.rarity,
-        value: item.Valeur || item.value,
-        weight: item.Poids || item.weight,
-        characteristics: item.Caracteristiques || item.characteristics,
-        additionalInfo:
-          item.InfoSupplementaire ||
-          item.Infosupplementaire ||
-          item.additionalInfo,
-        source: item.Source || item.source,
-        proficiency: item.Maitrise || item.proficiency,
+        id: item.index || item.id,
+        name: item.nomobjet || item.name,
+        type: item.type,
+        subType: item.soustype || item.subType,
+        rarity: item.rarete || item.rarity,
+        value: item.valeur || item.value,
+        weight: item.poids || item.weight,
+        characteristics: item.caracteristiques || item.characteristics,
+        additionalInfo: item.infosupplementaire || item.additionalInfo,
+        source: item.source,
+        proficiency: item.maitrise || item.proficiency,
       };
     });
 
     console.log("Objets formatés pour sauvegarde:", itemsToSave);
 
-    // Créer une nouvelle boutique dans la base de données
-    const newShop = await prisma.Shop.create({
+    // CORRECTION: Utiliser les noms de colonnes PostgreSQL
+    const newShop = await prisma.shop.create({
       data: {
         name: name.trim(),
         description: description ? description.trim() : "",
         items: JSON.stringify(itemsToSave), // Sauvegarder les objets complets
-        createdAt: new Date(),
+        createdat: new Date(), // CORRECTION: 'createdat' minuscule
       },
     });
 
@@ -245,7 +243,8 @@ export async function getShopWithItems(shopId) {
   console.log(`Récupération de la boutique avec ID: ${shopId}`);
 
   try {
-    const shop = await prisma.Shop.findUnique({
+    // CORRECTION: Utiliser 'shop' minuscule
+    const shop = await prisma.shop.findUnique({
       where: { id: Number(shopId) },
     });
 
@@ -269,23 +268,28 @@ export async function getShopWithItems(shopId) {
 
     // Les objets sont maintenant stockés avec leurs modifications
     // On les retourne directement au lieu de les chercher en base
+    // CORRECTION: Mapper vers la structure PostgreSQL (minuscules)
     const items = savedItems.map((item) => ({
-      // Mapper vers le format attendu par l'interface
-      Index: item.id,
-      IDX: item.id, // Pour la compatibilité
-      NomObjet: item.name,
-      Nomobjet: item.name, // Pour la compatibilité
-      Type: item.type,
-      SousType: item.subType,
-      Soustype: item.subType, // Pour la compatibilité
-      Rarete: item.rarity,
-      Valeur: item.value,
-      Poids: item.weight,
-      Caracteristiques: item.characteristics,
-      InfoSupplementaire: item.additionalInfo,
-      Infosupplementaire: item.additionalInfo, // Pour la compatibilité
-      Source: item.source,
-      Maitrise: item.proficiency,
+      index: item.id,
+      id: item.id, // Pour la compatibilité
+      nomobjet: item.name,
+      name: item.name, // Pour la compatibilité
+      type: item.type,
+      soustype: item.subType,
+      subType: item.subType, // Pour la compatibilité
+      rarete: item.rarity,
+      rarity: item.rarity, // Pour la compatibilité
+      valeur: item.value,
+      value: item.value, // Pour la compatibilité
+      poids: item.weight,
+      weight: item.weight, // Pour la compatibilité
+      caracteristiques: item.characteristics,
+      characteristics: item.characteristics, // Pour la compatibilité
+      infosupplementaire: item.additionalInfo,
+      additionalInfo: item.additionalInfo, // Pour la compatibilité
+      source: item.source,
+      maitrise: item.proficiency,
+      proficiency: item.proficiency, // Pour la compatibilité
     }));
 
     return {
@@ -310,9 +314,10 @@ export async function getAllShops() {
   console.log("Récupération de toutes les boutiques");
 
   try {
-    const shops = await prisma.Shop.findMany({
+    // CORRECTION: Utiliser 'shop' minuscule et 'createdat'
+    const shops = await prisma.shop.findMany({
       orderBy: {
-        createdAt: "desc",
+        createdat: "desc",
       },
     });
 
@@ -334,7 +339,8 @@ export async function deleteShop(shopId) {
   console.log(`Tentative de suppression de la boutique avec ID: ${shopId}`);
 
   try {
-    await prisma.Shop.delete({
+    // CORRECTION: Utiliser 'shop' minuscule
+    await prisma.shop.delete({
       where: { id: Number(shopId) },
     });
 

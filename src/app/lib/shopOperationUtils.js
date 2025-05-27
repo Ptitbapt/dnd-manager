@@ -1,5 +1,6 @@
 /**
  * Utilitaires pour les opérations sur les boutiques (génération, sauvegarde, etc.)
+ * Version adaptée pour PostgreSQL
  */
 import { generateShopData, saveShopData } from "./shopGeneratorUtils";
 import {
@@ -88,13 +89,18 @@ export function exportShopToJson(name, description, items) {
       name,
       description,
       items: items.map((item) => ({
-        id: item.IDX,
-        name: item.Nomobjet,
-        type: item.Type,
-        subType: item.Soustype,
-        rarity: item.Rarete,
-        value: item.Valeur,
-        source: item.Source,
+        // CORRECTION: Adaptation pour PostgreSQL (noms minuscules)
+        id: item.index || item.id,
+        name: item.nomobjet || item.name,
+        type: item.type,
+        subType: item.soustype || item.subType,
+        rarity: item.rarete || item.rarity,
+        value: item.valeur || item.value,
+        source: item.source,
+        weight: item.poids || item.weight,
+        characteristics: item.caracteristiques || item.characteristics,
+        additionalInfo: item.infosupplementaire || item.additionalInfo,
+        proficiency: item.maitrise || item.proficiency,
       })),
       exportDate: new Date().toISOString(),
     };
@@ -125,23 +131,23 @@ export function calculateShopStats(items) {
     // Total des objets
     const totalItems = items.length;
 
-    // Valeur totale
+    // Valeur totale - CORRECTION: utiliser 'valeur' minuscule
     const totalValue = items.reduce(
-      (sum, item) => sum + (parseFloat(item.Valeur) || 0),
+      (sum, item) => sum + (parseFloat(item.valeur || item.value) || 0),
       0
     );
 
-    // Distribution par type
+    // Distribution par type - CORRECTION: utiliser 'type' minuscule
     const typeDistribution = {};
     items.forEach((item) => {
-      const type = item.Type || "Non défini";
+      const type = item.type || "Non défini";
       typeDistribution[type] = (typeDistribution[type] || 0) + 1;
     });
 
-    // Distribution par rareté
+    // Distribution par rareté - CORRECTION: utiliser 'rarete' minuscule
     const rarityDistribution = {};
     items.forEach((item) => {
-      const rarity = item.Rarete || "Non défini";
+      const rarity = item.rarete || item.rarity || "Non défini";
       rarityDistribution[rarity] = (rarityDistribution[rarity] || 0) + 1;
     });
 
@@ -176,17 +182,17 @@ export function filterShopItems(items, filters) {
     const { typeFilter, rarityFilter, searchTerm } = filters;
 
     return items.filter((item) => {
-      // Filtre par type
-      const typeMatches = !typeFilter || item.Type === typeFilter;
+      // Filtre par type - CORRECTION: utiliser 'type' minuscule
+      const typeMatches = !typeFilter || item.type === typeFilter;
 
-      // Filtre par rareté
-      const rarityMatches = !rarityFilter || item.Rarete === rarityFilter;
+      // Filtre par rareté - CORRECTION: utiliser 'rarete' minuscule
+      const rarityMatches = !rarityFilter || item.rarete === rarityFilter;
 
-      // Filtre par terme de recherche
+      // Filtre par terme de recherche - CORRECTION: utiliser 'nomobjet' minuscule
       const searchMatches =
         !searchTerm ||
-        (item.Nomobjet &&
-          item.Nomobjet.toLowerCase().includes(searchTerm.toLowerCase()));
+        (item.nomobjet &&
+          item.nomobjet.toLowerCase().includes(searchTerm.toLowerCase()));
 
       return typeMatches && rarityMatches && searchMatches;
     });
@@ -215,26 +221,27 @@ export function sortShopItems(items, sortBy = "name", sortOrder = "asc") {
       let valueA, valueB;
 
       // Déterminer les valeurs à comparer selon le critère
+      // CORRECTION: Adaptation pour PostgreSQL (noms minuscules)
       switch (sortBy) {
         case "name":
-          valueA = a.Nomobjet || "";
-          valueB = b.Nomobjet || "";
+          valueA = a.nomobjet || a.name || "";
+          valueB = b.nomobjet || b.name || "";
           break;
         case "type":
-          valueA = a.Type || "";
-          valueB = b.Type || "";
+          valueA = a.type || "";
+          valueB = b.type || "";
           break;
         case "rarity":
-          valueA = a.Rarete || "";
-          valueB = b.Rarete || "";
+          valueA = a.rarete || a.rarity || "";
+          valueB = b.rarete || b.rarity || "";
           break;
         case "value":
-          valueA = parseFloat(a.Valeur) || 0;
-          valueB = parseFloat(b.Valeur) || 0;
+          valueA = parseFloat(a.valeur || a.value) || 0;
+          valueB = parseFloat(b.valeur || b.value) || 0;
           return sortOrder === "asc" ? valueA - valueB : valueB - valueA;
         default:
-          valueA = a.Nomobjet || "";
-          valueB = b.Nomobjet || "";
+          valueA = a.nomobjet || a.name || "";
+          valueB = b.nomobjet || b.name || "";
       }
 
       // Comparaison lexicographique pour les chaînes
@@ -273,15 +280,16 @@ export function groupShopItems(items, groupBy = "type") {
       let key;
 
       // Déterminer la clé de groupement
+      // CORRECTION: Adaptation pour PostgreSQL (noms minuscules)
       switch (groupBy) {
         case "type":
-          key = item.Type || "Non défini";
+          key = item.type || "Non défini";
           break;
         case "rarity":
-          key = item.Rarete || "Non défini";
+          key = item.rarete || item.rarity || "Non défini";
           break;
         default:
-          key = item.Type || "Non défini";
+          key = item.type || "Non défini";
       }
 
       // Initialiser le groupe s'il n'existe pas encore
@@ -307,7 +315,8 @@ export function groupShopItems(items, groupBy = "type") {
  * @returns {boolean} - True si l'objet peut être ajouté
  */
 export function canAddItemToShop(item, existingItems) {
-  if (!item || !item.IDX) {
+  // CORRECTION: utiliser 'index' minuscule
+  if (!item || !item.index) {
     return false;
   }
 
@@ -316,5 +325,8 @@ export function canAddItemToShop(item, existingItems) {
   }
 
   // Vérifier si l'objet existe déjà dans la liste
-  return !existingItems.some((existingItem) => existingItem.IDX === item.IDX);
+  // CORRECTION: utiliser 'index' minuscule
+  return !existingItems.some(
+    (existingItem) => existingItem.index === item.index
+  );
 }

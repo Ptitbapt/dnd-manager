@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import { getShopWithItems, deleteShop } from "../../../lib/shopGenerator";
 
 export async function GET(request, context) {
-  console.log(`GET pour boutique ID: ${context.params.id}`);
   try {
-    // Récupérer et attendre l'ID de la boutique à partir des paramètres
-    const shopId = context.params.id;
+    // CORRECTION: Await params avant de les utiliser (Next.js 15+)
+    const params = await context.params;
+    const shopId = params.id;
+
+    console.log(`GET pour boutique ID: ${shopId}`);
 
     if (!shopId) {
       return NextResponse.json(
@@ -38,10 +40,12 @@ export async function GET(request, context) {
 }
 
 export async function DELETE(request, context) {
-  console.log(`DELETE pour boutique ID: ${context.params.id}`);
   try {
-    // Récupérer et attendre l'ID de la boutique à partir des paramètres
-    const shopId = context.params.id;
+    // CORRECTION: Await params avant de les utiliser (Next.js 15+)
+    const params = await context.params;
+    const shopId = params.id;
+
+    console.log(`DELETE pour boutique ID: ${shopId}`);
 
     if (!shopId) {
       return NextResponse.json(
