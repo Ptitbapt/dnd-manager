@@ -1,0 +1,9 @@
+[variables]
+NODE_ENV = "production"
+SKIP_ENV_VALIDATION = "true"
+
+[phases.build]
+cmd = "npm ci && npx prisma generate && npm run build"
+
+[start]
+cmd = "npx prisma migrate deploy && npm start"
