@@ -1,4 +1,4 @@
-// src/app/components/shops/TypeSelector.jsx (ou le nom de votre composant pour les types)
+// src/app/components/shops/TypeChanceSelector.jsx
 
 import { useState } from "react";
 
@@ -7,9 +7,10 @@ export default function TypeChanceSelector({
   shopConfig,
   totalPercentage,
   onTypeChange,
+  onTypeChanceChange, // Ajout de cette prop pour compatibilité
   onRandomize,
   onNormalize,
-  onClearAllTypes, // Nouvelle prop spécifique pour effacer les types
+  onClearAllTypes,
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -18,6 +19,45 @@ export default function TypeChanceSelector({
     console.error("Les types ne sont pas un tableau:", types);
     types = [];
   }
+
+  // Fonction de sécurité pour onTypeChange - prend en compte les deux noms de props
+  const handleTypeChange = (type, value) => {
+    // Utiliser onTypeChanceChange si disponible, sinon onTypeChange
+    const changeHandler = onTypeChanceChange || onTypeChange;
+    if (typeof changeHandler === "function") {
+      changeHandler(type, value);
+    } else {
+      console.error("Aucune fonction de changement de type fournie:", {
+        onTypeChange,
+        onTypeChanceChange,
+      });
+    }
+  };
+
+  // Fonctions de sécurité pour les autres handlers
+  const handleRandomize = () => {
+    if (typeof onRandomize === "function") {
+      onRandomize();
+    } else {
+      console.error("onRandomize n'est pas une fonction");
+    }
+  };
+
+  const handleNormalize = () => {
+    if (typeof onNormalize === "function") {
+      onNormalize();
+    } else {
+      console.error("onNormalize n'est pas une fonction");
+    }
+  };
+
+  const handleClearAllTypes = () => {
+    if (typeof onClearAllTypes === "function") {
+      onClearAllTypes();
+    } else {
+      console.error("onClearAllTypes n'est pas une fonction");
+    }
+  };
 
   const toggleExpand = () => {
     setExpanded(!expanded);
@@ -45,10 +85,10 @@ export default function TypeChanceSelector({
         </h3>
 
         <div className="flex items-center space-x-2">
-          {/* Bouton Effacer tout - spécifique aux types */}
+          {/* Bouton Effacer tout */}
           <button
             type="button"
-            onClick={onClearAllTypes}
+            onClick={handleClearAllTypes}
             className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <svg
@@ -71,7 +111,7 @@ export default function TypeChanceSelector({
           {/* Bouton Aléatoire */}
           <button
             type="button"
-            onClick={onRandomize}
+            onClick={handleRandomize}
             className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <svg
@@ -94,7 +134,7 @@ export default function TypeChanceSelector({
           {/* Bouton Normaliser */}
           <button
             type="button"
-            onClick={onNormalize}
+            onClick={handleNormalize}
             className="inline-flex items-center px-3 py-1 bg-indigo-600 text-white shadow-sm text-sm leading-4 font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <svg
@@ -164,7 +204,8 @@ export default function TypeChanceSelector({
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {types.map((type) => {
-              const value = shopConfig.typeChances[type] || 0;
+              const value =
+                (shopConfig?.typeChances && shopConfig.typeChances[type]) || 0;
               return (
                 <div key={type}>
                   <label
@@ -180,7 +221,7 @@ export default function TypeChanceSelector({
                       min="0"
                       max="100"
                       value={value}
-                      onChange={(e) => onTypeChange(type, e.target.value)}
+                      onChange={(e) => handleTypeChange(type, e.target.value)}
                       className="block w-full px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       placeholder="0"
                     />
@@ -207,7 +248,7 @@ export default function TypeChanceSelector({
                   : "text-orange-600"
               }`}
             >
-              {totalPercentage}%
+              {totalPercentage || 0}%
             </span>
           </div>
 
