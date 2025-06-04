@@ -1,4 +1,4 @@
-// app/api/items/route.js - Version corrigée pour nouvelle base de données
+// app/api/items/route.js - Version corrigée
 import { NextResponse } from "next/server";
 import {
   getAllItems,
@@ -15,56 +15,15 @@ export async function GET(request) {
 
     console.log(`API /api/items appelée avec action: ${action}`);
 
-    // Traitement des actions spéciales
+    // CORRECTION : Rediriger vers les nouvelles routes dédiées
     if (action === "types") {
-      console.log("Récupération des types d'objets");
-      try {
-        const types = await getUniqueTypes();
-        console.log(`${types.length} types récupérés:`, types);
-
-        // Vérifier que types est bien un tableau
-        const safeTypes = Array.isArray(types) ? types : [];
-
-        return NextResponse.json({ types: safeTypes });
-      } catch (error) {
-        console.error("Erreur lors de la récupération des types:", error);
-        // Retourner des types par défaut en cas d'erreur
-        const defaultTypes = [
-          "Arme",
-          "Armure",
-          "Équipement",
-          "Objet merveilleux",
-          "Potion",
-        ];
-        return NextResponse.json({ types: defaultTypes, error: error.message });
-      }
+      console.log("Redirection vers /api/items/types");
+      return NextResponse.redirect(new URL("/api/items/types", request.url));
     }
 
     if (action === "rarities") {
-      console.log("Récupération des raretés d'objets");
-      try {
-        const rarities = await getUniqueRarities();
-        console.log(`${rarities.length} raretés récupérées:`, rarities);
-
-        // Vérifier que rarities est bien un tableau
-        const safeRarities = Array.isArray(rarities) ? rarities : [];
-
-        return NextResponse.json({ rarities: safeRarities });
-      } catch (error) {
-        console.error("Erreur lors de la récupération des raretés:", error);
-        // Retourner des raretés par défaut en cas d'erreur
-        const defaultRarities = [
-          "Commun",
-          "Peu commun",
-          "Rare",
-          "Très rare",
-          "Légendaire",
-        ];
-        return NextResponse.json({
-          rarities: defaultRarities,
-          error: error.message,
-        });
-      }
+      console.log("Redirection vers /api/items/rarities");
+      return NextResponse.redirect(new URL("/api/items/rarities", request.url));
     }
 
     // Récupérer tous les éléments avec filtrage potentiel
@@ -78,8 +37,8 @@ export async function GET(request) {
 
     try {
       const items = await getAllItems({ search, type, rarity });
-      console.log(`${items.length} items trouvés`);
-      return NextResponse.json(items);
+      console.log(`${items?.length || 0} items trouvés`);
+      return NextResponse.json(items || []);
     } catch (error) {
       console.error("Erreur lors de la récupération des items:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });

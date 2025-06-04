@@ -21,46 +21,52 @@ export async function fetchTypesAndRarities() {
     return { types: typesCache, rarities: raritiesCache };
   }
 
+  // CORRECTION : Gestion d'erreur plus robuste avec valeurs par défaut
+  let typesData = [];
+  let raritiesData = [];
+
   try {
-    const typesResponse = await fetch("/api/items/types");
-    if (!typesResponse.ok) {
-      throw new Error(
-        `Erreur lors de la récupération des types: ${typesResponse.statusText}`
-      );
+    // Tentative de récupération des types
+    try {
+      const typesResponse = await fetch("/api/items/types");
+      if (typesResponse.ok) {
+        const typesResult = await typesResponse.json();
+        typesData = Array.isArray(typesResult.types)
+          ? typesResult.types
+          : Array.isArray(typesResult)
+          ? typesResult
+          : [];
+      } else {
+        console.warn("API types non disponible, statut:", typesResponse.status);
+      }
+    } catch (error) {
+      console.warn("Impossible de récupérer les types:", error.message);
     }
 
-    const typesResult = await typesResponse.json();
-    const typesData = Array.isArray(typesResult.types)
-      ? typesResult.types
-      : Array.isArray(typesResult)
-      ? typesResult
-      : [];
-
-    const raritiesResponse = await fetch("/api/items/rarities");
-    if (!raritiesResponse.ok) {
-      throw new Error(
-        `Erreur lors de la récupération des raretés: ${raritiesResponse.statusText}`
-      );
+    // Tentative de récupération des raretés
+    try {
+      const raritiesResponse = await fetch("/api/items/rarities");
+      if (raritiesResponse.ok) {
+        const raritiesResult = await raritiesResponse.json();
+        raritiesData = Array.isArray(raritiesResult.rarities)
+          ? raritiesResult.rarities
+          : Array.isArray(raritiesResult)
+          ? raritiesResult
+          : [];
+      } else {
+        console.warn(
+          "API rarities non disponible, statut:",
+          raritiesResponse.status
+        );
+      }
+    } catch (error) {
+      console.warn("Impossible de récupérer les raretés:", error.message);
     }
 
-    const raritiesResult = await raritiesResponse.json();
-    const raritiesData = Array.isArray(raritiesResult.rarities)
-      ? raritiesResult.rarities
-      : Array.isArray(raritiesResult)
-      ? raritiesResult
-      : [];
-
-    typesCache = typesData;
-    raritiesCache = raritiesData;
-
-    return { types: typesData, rarities: raritiesData };
-  } catch (error) {
-    console.error(
-      "Erreur lors de la récupération des types et raretés:",
-      error
-    );
-    return {
-      types: [
+    // Si aucune donnée n'a pu être récupérée, utiliser les valeurs par défaut
+    if (typesData.length === 0) {
+      console.info("Utilisation des types par défaut");
+      typesData = [
         "Armes",
         "Armures",
         "Équipement",
@@ -72,8 +78,12 @@ export async function fetchTypesAndRarities() {
         "Parchemin",
         "Anneau",
         "Sceptre",
-      ],
-      rarities: [
+      ];
+    }
+
+    if (raritiesData.length === 0) {
+      console.info("Utilisation des raretés par défaut");
+      raritiesData = [
         "Neutre",
         "Commun",
         "Variable",
@@ -81,8 +91,48 @@ export async function fetchTypesAndRarities() {
         "Rare",
         "Très rare",
         "Légendaire",
-      ],
-    };
+      ];
+    }
+
+    typesCache = typesData;
+    raritiesCache = raritiesData;
+
+    return { types: typesData, rarities: raritiesData };
+  } catch (error) {
+    console.error(
+      "Erreur générale lors de la récupération des types et raretés:",
+      error
+    );
+
+    // Retourner les valeurs par défaut en cas d'erreur totale
+    const defaultTypes = [
+      "Armes",
+      "Armures",
+      "Équipement",
+      "Outils",
+      "Objet merveilleux",
+      "Baguette",
+      "Bâton",
+      "Potion",
+      "Parchemin",
+      "Anneau",
+      "Sceptre",
+    ];
+
+    const defaultRarities = [
+      "Neutre",
+      "Commun",
+      "Variable",
+      "Peu commun",
+      "Rare",
+      "Très rare",
+      "Légendaire",
+    ];
+
+    typesCache = defaultTypes;
+    raritiesCache = defaultRarities;
+
+    return { types: defaultTypes, rarities: defaultRarities };
   }
 }
 
@@ -99,6 +149,11 @@ export async function generateShopItems(config) {
   try {
     isGenerating = true;
 
+    // CORRECTION : Ajouter des logs pour déboguer
+    console.log("Configuration envoyée à l'API de génération:", config);
+    console.log("itemsPerRarity:", config.itemsPerRarity);
+    console.log("typeChances:", config.typeChances);
+
     const response = await fetch("/api/shops/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -106,18 +161,26 @@ export async function generateShopItems(config) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: `Erreur HTTP ${response.status}: ${errorText}` };
+      }
       throw new Error(
-        errorData.error || "Erreur lors de la génération de la boutique"
+        errorData.error ||
+          `Erreur lors de la génération de la boutique (${response.status})`
       );
     }
 
     const data = await response.json();
 
     if (!data.success || !data.items) {
-      throw new Error("Réponse invalide de l'API");
+      throw new Error("Réponse invalide de l'API de génération");
     }
 
+    console.log("Objets générés:", data.items);
     return data.items;
   } catch (error) {
     console.error("Erreur lors de la génération des objets:", error);
@@ -262,49 +325,4 @@ export function buildAideDDUrl(itemName) {
     .replace(/^-+|-+$/g, "");
 
   return `https://aidedd.org/dnd/om.php?vf=${normalizedName}`;
-}
-
-/**
- * Initialise les présets de boutique par défaut
- * @returns {Promise<void>}
- */
-export async function initializeDefaultPresets() {
-  try {
-    const response = await fetch("/api/presets/initialize", {
-      method: "POST",
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Erreur ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(
-      "Erreur lors de l'initialisation des présets par défaut:",
-      error
-    );
-    throw error;
-  }
-}
-
-/**
- * Récupère toutes les boutiques
- * @returns {Promise<Array>}
- */
-export async function getAllShops() {
-  try {
-    const response = await fetch("/api/shops");
-    if (!response.ok) {
-      throw new Error(
-        `Erreur lors de la récupération des boutiques: ${response.statusText}`
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Erreur lors de la récupération des boutiques:", error);
-    return [];
-  }
 }

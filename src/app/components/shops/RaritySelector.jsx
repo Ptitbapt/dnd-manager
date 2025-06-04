@@ -7,7 +7,7 @@ export default function RaritySelector({
   shopConfig,
   onRarityChange,
   onRandomize,
-  onClearAllRarities, // Nouvelle prop spécifique pour effacer les raretés
+  onClearAllRarities,
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -16,6 +16,30 @@ export default function RaritySelector({
     console.error("Les raretés ne sont pas un tableau:", rarities);
     rarities = [];
   }
+
+  const handleRarityChange = (rarity, value) => {
+    if (typeof onRarityChange === "function") {
+      onRarityChange(rarity, value);
+    } else {
+      console.error("onRarityChange n'est pas une fonction");
+    }
+  };
+
+  const handleRandomize = () => {
+    if (typeof onRandomize === "function") {
+      onRandomize();
+    } else {
+      console.error("onRandomize n'est pas une fonction");
+    }
+  };
+
+  const handleClearAllRarities = () => {
+    if (typeof onClearAllRarities === "function") {
+      onClearAllRarities();
+    } else {
+      console.error("onClearAllRarities n'est pas une fonction");
+    }
+  };
 
   const toggleExpand = () => {
     setExpanded(!expanded);
@@ -27,7 +51,7 @@ export default function RaritySelector({
         <h3 className="text-md font-medium text-gray-700 flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 mr-2 text-indigo-500"
+            className="h-5 w-5 mr-2 text-purple-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -36,17 +60,17 @@ export default function RaritySelector({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M13 10V3L4 14h7v7l9-11h-7z"
+              d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
             />
           </svg>
           Nombre d'objets par rareté
         </h3>
 
         <div className="flex items-center space-x-2">
-          {/* Bouton Effacer tout - spécifique aux raretés */}
+          {/* Bouton Effacer tout */}
           <button
             type="button"
-            onClick={onClearAllRarities}
+            onClick={handleClearAllRarities}
             className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <svg
@@ -69,7 +93,7 @@ export default function RaritySelector({
           {/* Bouton Aléatoire */}
           <button
             type="button"
-            onClick={onRandomize}
+            onClick={handleRandomize}
             className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <svg
@@ -131,20 +155,22 @@ export default function RaritySelector({
       </div>
 
       <p className="text-sm text-gray-500 mb-3">
-        Définissez le nombre d'objets par niveau de rareté à inclure dans la
+        Définissez le nombre d'objets de chaque rareté à inclure dans la
         boutique.
       </p>
 
       {expanded && (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {rarities.map((rarity) => {
-            const value = shopConfig.itemsPerRarity[rarity] || 0;
+            const value =
+              (shopConfig?.itemsPerRarity &&
+                shopConfig.itemsPerRarity[rarity]) ||
+              0;
             return (
-              <div key={rarity} className="flex items-center">
+              <div key={rarity}>
                 <label
                   htmlFor={`rarity-${rarity}`}
-                  className="block text-sm font-medium text-gray-700 mr-2 w-44 truncate"
-                  title={rarity}
+                  className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   {rarity}
                 </label>
@@ -152,9 +178,12 @@ export default function RaritySelector({
                   type="number"
                   id={`rarity-${rarity}`}
                   min="0"
+                  max="50"
                   value={value}
-                  onChange={(e) => onRarityChange(rarity, e.target.value)}
-                  className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  onChange={(e) => handleRarityChange(rarity, e.target.value)}
+                  onFocus={(e) => e.target.select()} // CORRECTION : Sélectionner le texte au focus
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="0"
                 />
               </div>
             );

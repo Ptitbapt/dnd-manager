@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { saveShop, getAllShops } from "../../lib/shopGenerator";
 
 // Map pour le suivi des requêtes de sauvegarde en cours
-// Utilise l'IP ou un identifiant de session comme clé
 const ongoingSaves = new Map();
 
 export async function POST(request) {
@@ -45,19 +44,23 @@ export async function POST(request) {
       );
     }
 
-    // Vérification des doublons (si on veut éviter de sauvegarder deux fois la même boutique)
-    // Cette vérification peut être améliorée selon vos besoins spécifiques
-    const existingShops = await getAllShops();
-    const duplicateShop = existingShops.find(
-      (shop) => shop.name.toLowerCase() === data.name.trim().toLowerCase()
-    );
-
-    if (duplicateShop) {
-      ongoingSaves.delete(userIdentifier); // Nettoyer en cas d'erreur
-      return NextResponse.json(
-        { error: "Une boutique avec ce nom existe déjà" },
-        { status: 409 } // Conflict
+    // Vérification des doublons (optionnel - peut être commenté si non souhaité)
+    try {
+      const existingShops = await getAllShops();
+      const duplicateShop = existingShops.find(
+        (shop) => shop.name.toLowerCase() === data.name.trim().toLowerCase()
       );
+
+      if (duplicateShop) {
+        ongoingSaves.delete(userIdentifier);
+        return NextResponse.json(
+          { error: "Une boutique avec ce nom existe déjà" },
+          { status: 409 } // Conflict
+        );
+      }
+    } catch (duplicateCheckError) {
+      console.warn("Impossible de vérifier les doublons:", duplicateCheckError);
+      // Continuer même si la vérification échoue
     }
 
     // Sauvegarde de la boutique AVEC les objets modifiés
@@ -97,8 +100,12 @@ export async function POST(request) {
 
 export async function GET() {
   try {
+    console.log("Récupération de toutes les boutiques");
+
     const shops = await getAllShops();
-    return NextResponse.json(shops);
+    console.log(`${shops?.length || 0} boutiques récupérées`);
+
+    return NextResponse.json(shops || []);
   } catch (error) {
     console.error("Erreur lors de la récupération des boutiques:", error);
     return NextResponse.json(

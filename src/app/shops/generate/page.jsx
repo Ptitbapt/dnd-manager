@@ -210,14 +210,21 @@ function GenerateShopContent() {
 
   // Mise à jour de la configuration
   const updateShopConfig = (newConfig, newPercentage) => {
+    console.log(
+      "Mise à jour configuration:",
+      newConfig,
+      "Pourcentage:",
+      newPercentage
+    ); // CORRECTION : Log pour déboguer
     setShopConfig(newConfig);
     setUiState((prev) => ({ ...prev, totalPercentage: newPercentage }));
   };
 
-  // Génération de la boutique
+  // CORRECTION : Génération de la boutique avec logs de débogage
   const generateShop = async () => {
     // Protection contre les doubles clics
     if (isGeneratingRef.current || uiState.isGenerating) {
+      console.log("Génération déjà en cours, abandon");
       return;
     }
 
@@ -230,6 +237,38 @@ function GenerateShopContent() {
       return;
     }
 
+    // CORRECTION : Logs de débogage détaillés
+    console.log("=== DÉBUT GÉNÉRATION BOUTIQUE ===");
+    console.log("Configuration complète:", shopConfig);
+    console.log("itemsPerRarity:", shopConfig.itemsPerRarity);
+    console.log("typeChances:", shopConfig.typeChances);
+    console.log("Pourcentage total:", uiState.totalPercentage);
+
+    // Vérifier que la configuration n'est pas vide
+    const hasRarityConfig =
+      Object.keys(shopConfig.itemsPerRarity || {}).length > 0;
+    const hasTypeConfig = Object.keys(shopConfig.typeChances || {}).length > 0;
+
+    if (!hasRarityConfig) {
+      console.error("ERREUR: Aucune configuration de rareté définie");
+      setMessages({
+        error:
+          "Aucune configuration de rareté définie. Veuillez configurer les raretés.",
+        success: "",
+      });
+      return;
+    }
+
+    if (!hasTypeConfig) {
+      console.error("ERREUR: Aucune configuration de type définie");
+      setMessages({
+        error:
+          "Aucune configuration de type définie. Veuillez configurer les types.",
+        success: "",
+      });
+      return;
+    }
+
     // Marquer comme en cours de génération
     isGeneratingRef.current = true;
     setUiState((prev) => ({ ...prev, isGenerating: true }));
@@ -237,7 +276,9 @@ function GenerateShopContent() {
     setShopItems([]);
 
     try {
+      console.log("Envoi de la configuration à l'API...");
       const items = await generateShopItems(shopConfig);
+      console.log("Objets reçus de l'API:", items);
 
       setShopItems(items);
       setMessages({ success: "Boutique générée avec succès !", error: "" });
@@ -262,6 +303,7 @@ function GenerateShopContent() {
         showItemSelector: shopItems.length > 0,
       }));
       isGeneratingRef.current = false;
+      console.log("=== FIN GÉNÉRATION BOUTIQUE ===");
     }
   };
 

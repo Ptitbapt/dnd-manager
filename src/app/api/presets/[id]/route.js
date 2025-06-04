@@ -18,6 +18,8 @@ const ongoingDeletions = new Map();
  */
 export async function GET(request, context) {
   try {
+    console.log("API /api/presets/[id] GET appelée");
+
     // Initialiser la connexion à la base de données
     const dbInit = await initDatabase();
     if (!dbInit.success) {
@@ -27,22 +29,30 @@ export async function GET(request, context) {
       );
     }
 
-    // Récupérer l'ID de manière asynchrone
+    // CORRECTION : Récupérer l'ID de manière asynchrone (Next.js 15+)
     const params = await context.params;
     const id = params.id;
+
+    console.log(`Récupération du preset ID: ${id}`);
 
     // Récupérer le preset
     const preset = await getPresetById(id);
 
     if (!preset) {
+      console.log(`Preset avec ID ${id} non trouvé`);
       return NextResponse.json({ error: "Preset non trouvé" }, { status: 404 });
     }
 
-    return NextResponse.json({ preset });
+    console.log(`Preset avec ID ${id} récupéré avec succès`);
+    return NextResponse.json({
+      success: true,
+      preset,
+    });
   } catch (error) {
     console.error("Erreur lors de la récupération du preset:", error);
     return NextResponse.json(
       {
+        success: false,
         error:
           "Erreur lors de la récupération du preset: " +
           (error.message || "Erreur inconnue"),
@@ -86,11 +96,13 @@ export async function PUT(request, context) {
       );
     }
 
-    // Récupérer l'ID de manière asynchrone
+    // CORRECTION : Récupérer l'ID de manière asynchrone (Next.js 15+)
     const params = await context.params;
     const id = params.id;
 
     const data = await request.json();
+
+    console.log(`Mise à jour du preset ID: ${id}`, data);
 
     // Valider les données
     if (!data.name || !data.wealthLevel || !data.shopType) {
@@ -159,7 +171,10 @@ export async function PUT(request, context) {
     // Nettoyer après traitement
     ongoingUpdates.delete(userIdentifier);
 
+    console.log(`Preset ID ${id} mis à jour avec succès`);
+
     return NextResponse.json({
+      success: true,
       message: "Preset mis à jour avec succès",
       preset: updatedPreset,
     });
@@ -173,6 +188,7 @@ export async function PUT(request, context) {
 
     return NextResponse.json(
       {
+        success: false,
         error:
           "Erreur lors de la mise à jour du preset: " +
           (error.message || "Erreur inconnue"),
@@ -216,9 +232,11 @@ export async function DELETE(request, context) {
       );
     }
 
-    // Récupérer l'ID de manière asynchrone
+    // CORRECTION : Récupérer l'ID de manière asynchrone (Next.js 15+)
     const params = await context.params;
     const id = params.id;
+
+    console.log(`Suppression du preset ID: ${id}`);
 
     // Vérifier que le preset existe
     const existingPreset = await getPresetById(id);
@@ -233,7 +251,12 @@ export async function DELETE(request, context) {
     // Nettoyer après traitement
     ongoingDeletions.delete(userIdentifier);
 
-    return NextResponse.json({ message: "Preset supprimé avec succès" });
+    console.log(`Preset ID ${id} supprimé avec succès`);
+
+    return NextResponse.json({
+      success: true,
+      message: "Preset supprimé avec succès",
+    });
   } catch (error) {
     console.error("Erreur lors de la suppression du preset:", error);
 
@@ -244,6 +267,7 @@ export async function DELETE(request, context) {
 
     return NextResponse.json(
       {
+        success: false,
         error:
           "Erreur lors de la suppression du preset: " +
           (error.message || "Erreur inconnue"),

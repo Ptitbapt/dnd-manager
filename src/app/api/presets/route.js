@@ -17,6 +17,8 @@ const ongoingCreations = new Map();
  */
 export async function GET(request) {
   try {
+    console.log("API /api/presets GET appelée");
+
     // Initialiser la connexion à la base de données
     const dbInit = await initDatabase();
     if (!dbInit.success) {
@@ -31,17 +33,27 @@ export async function GET(request) {
     const wealthLevel = searchParams.get("wealthLevel");
     const shopType = searchParams.get("shopType");
 
+    console.log(
+      `Filtres appliqués - wealthLevel: ${wealthLevel}, shopType: ${shopType}`
+    );
+
     // Récupérer les présets avec les filtres éventuels
     const presets = await getPresets({ wealthLevel, shopType });
+    console.log(`${presets?.length || 0} présets récupérés`);
 
-    return NextResponse.json({ presets });
+    return NextResponse.json({
+      success: true,
+      presets: presets || [],
+    });
   } catch (error) {
     console.error("Erreur lors de la récupération des présets:", error);
     return NextResponse.json(
       {
+        success: false,
         error:
           "Erreur lors de la récupération des présets: " +
           (error.message || "Erreur inconnue"),
+        presets: [],
       },
       { status: 500 }
     );
@@ -84,6 +96,8 @@ export async function POST(request) {
     // Récupérer les données de la requête
     const data = await request.json();
 
+    console.log("Données reçues pour création de preset:", data);
+
     // Vérifier si c'est une demande d'initialisation des presets par défaut
     if (data.action === "initialize") {
       return await handleInitializePresets(userIdentifier);
@@ -114,11 +128,16 @@ export async function POST(request) {
  */
 async function handleInitializePresets(userIdentifier) {
   try {
+    console.log("Initialisation des presets par défaut");
+
     // Récupérer tous les presets existants
     const existingPresets = await getPresets({});
 
     // Filtrer les presets par défaut existants
     const defaultPresets = existingPresets.filter((preset) => preset.isDefault);
+    console.log(
+      `${defaultPresets.length} presets par défaut existants trouvés`
+    );
 
     // Supprimer les anciens presets par défaut
     let deletedCount = 0;
@@ -156,7 +175,12 @@ async function handleInitializePresets(userIdentifier) {
     // Nettoyer après traitement
     ongoingCreations.delete(userIdentifier);
 
+    console.log(
+      `Presets par défaut mis à jour: ${deletedCount} supprimés, ${createdCount} créés`
+    );
+
     return NextResponse.json({
+      success: true,
       message: "Presets par défaut mis à jour avec succès",
       deleted: deletedCount,
       created: createdCount,
@@ -230,8 +254,11 @@ async function handleCreatePreset(data, userIdentifier) {
     // Nettoyer après traitement
     ongoingCreations.delete(userIdentifier);
 
+    console.log("Nouveau preset créé:", newPreset.name);
+
     return NextResponse.json(
       {
+        success: true,
         message: "Preset créé avec succès",
         preset: newPreset,
       },

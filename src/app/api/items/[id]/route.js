@@ -1,20 +1,19 @@
-// app/api/items/[id]/route.js - Version corrigée pour nouvelle base de données
+// app/api/items/[id]/route.js - Version corrigée
 import { getItemById, updateItem, deleteItem } from "../../../lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET(request, context) {
   try {
-    // Récupérer les paramètres de manière asynchrone
-    const params = context.params;
+    // CORRECTION : Récupérer les paramètres de manière asynchrone (Next.js 15+)
+    const params = await context.params;
     const id = params.id;
 
     console.log(`GET /api/items/${id} - Récupération de l'objet`);
 
     // Vérifier si l'id est "types" ou "rarities" pour les cas spéciaux
     if (id === "types" || id === "rarities") {
-      return NextResponse.redirect(
-        new URL(`/api/items?action=${id}`, request.url)
-      );
+      console.log(`Redirection vers /api/items/${id}`);
+      return NextResponse.redirect(new URL(`/api/items/${id}`, request.url));
     }
 
     const item = await getItemById(id);
@@ -34,7 +33,8 @@ export async function GET(request, context) {
 
 export async function PUT(request, context) {
   try {
-    const params = context.params;
+    // CORRECTION : Récupérer les paramètres de manière asynchrone (Next.js 15+)
+    const params = await context.params;
     const id = params.id;
     const data = await request.json();
 
@@ -65,7 +65,8 @@ export async function PUT(request, context) {
 
 export async function DELETE(request, context) {
   try {
-    const params = context.params;
+    // CORRECTION : Récupérer les paramètres de manière asynchrone (Next.js 15+)
+    const params = await context.params;
     const id = params.id;
 
     console.log(`DELETE /api/items/${id} - Suppression de l'objet`);

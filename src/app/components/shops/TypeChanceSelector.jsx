@@ -6,8 +6,7 @@ export default function TypeChanceSelector({
   types,
   shopConfig,
   totalPercentage,
-  onTypeChange,
-  onTypeChanceChange, // Ajout de cette prop pour compatibilité
+  onTypeChanceChange, // CORRECTION: Utiliser cette prop au lieu de onTypeChange
   onRandomize,
   onNormalize,
   onClearAllTypes,
@@ -20,17 +19,12 @@ export default function TypeChanceSelector({
     types = [];
   }
 
-  // Fonction de sécurité pour onTypeChange - prend en compte les deux noms de props
+  // CORRECTION : Utiliser directement onTypeChanceChange
   const handleTypeChange = (type, value) => {
-    // Utiliser onTypeChanceChange si disponible, sinon onTypeChange
-    const changeHandler = onTypeChanceChange || onTypeChange;
-    if (typeof changeHandler === "function") {
-      changeHandler(type, value);
+    if (typeof onTypeChanceChange === "function") {
+      onTypeChanceChange(type, value);
     } else {
-      console.error("Aucune fonction de changement de type fournie:", {
-        onTypeChange,
-        onTypeChanceChange,
-      });
+      console.error("onTypeChanceChange n'est pas une fonction");
     }
   };
 
@@ -222,6 +216,7 @@ export default function TypeChanceSelector({
                       max="100"
                       value={value}
                       onChange={(e) => handleTypeChange(type, e.target.value)}
+                      onFocus={(e) => e.target.select()} // CORRECTION : Sélectionner le texte au focus
                       className="block w-full px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       placeholder="0"
                     />
