@@ -14,8 +14,10 @@ export default function ItemsList() {
   const [filter, setFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [rarityFilter, setRarityFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState(""); // NOUVEAU: Filtre par source
   const [types, setTypes] = useState([]);
   const [rarities, setRarities] = useState([]);
+  const [sources, setSources] = useState([]); // NOUVEAU: État pour les sources
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -30,7 +32,12 @@ export default function ItemsList() {
       console.error("Les raretés ne sont pas un tableau:", rarities);
       setRarities([]);
     }
-  }, [types, rarities]);
+
+    if (!Array.isArray(sources)) {
+      console.error("Les sources ne sont pas un tableau:", sources);
+      setSources([]);
+    }
+  }, [types, rarities, sources]);
 
   useEffect(() => {
     async function fetchItems() {
@@ -82,12 +89,22 @@ export default function ItemsList() {
               ? raritiesData
               : [];
 
+            // NOUVEAU: Extraire les sources uniques des items
+            const uniqueSources = [
+              ...new Set(
+                processedItems
+                  .map((item) => item.source)
+                  .filter((source) => source && source.trim() !== "")
+              ),
+            ].sort();
+
             console.log("Données traitées:", {
               items: processedItems,
               itemsLength: processedItems.length,
               firstItem: processedItems[0] || "aucun item",
               types: processedTypes,
               rarities: processedRarities,
+              sources: uniqueSources, // NOUVEAU: Log des sources
             });
 
             // Debug spécifique si aucun item
@@ -103,12 +120,14 @@ export default function ItemsList() {
             setItems(processedItems);
             setTypes(processedTypes);
             setRarities(processedRarities);
+            setSources(uniqueSources); // NOUVEAU: Définir les sources
           } catch (parseError) {
             console.error("Erreur lors de l'analyse des données:", parseError);
             setError("Erreur lors de l'analyse des données");
             setItems([]);
             setTypes([]);
             setRarities([]);
+            setSources([]); // NOUVEAU: Reset des sources en cas d'erreur
           }
         } else {
           console.error("Erreur lors de la récupération des données:", {
@@ -176,10 +195,19 @@ export default function ItemsList() {
         return (
           nameOrIdMatches &&
           (typeFilter === "" || item.type === typeFilter) &&
-          (rarityFilter === "" || item.rarete === rarityFilter)
+          (rarityFilter === "" || item.rarete === rarityFilter) &&
+          (sourceFilter === "" || item.source === sourceFilter) // NOUVEAU: Filtre par source
         );
       })
     : [];
+
+  // NOUVEAU: Fonction pour réinitialiser tous les filtres
+  const clearAllFilters = () => {
+    setFilter("");
+    setTypeFilter("");
+    setRarityFilter("");
+    setSourceFilter("");
+  };
 
   const handleDelete = async (id) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet objet ?")) {
@@ -206,6 +234,16 @@ export default function ItemsList() {
           </h1>
           <p className="mt-1 text-sm text-gray-500">
             {filteredItems.length} objets disponibles
+            {/* NOUVEAU: Indicateur de filtres actifs */}
+            {(filter || typeFilter || rarityFilter || sourceFilter) && (
+              <span className="ml-2 text-indigo-600">
+                (filtré
+                {filteredItems.length !== items.length
+                  ? `s sur ${items.length}`
+                  : ""}
+                )
+              </span>
+            )}
           </p>
         </div>
         <Link href="/items/add">
@@ -233,7 +271,37 @@ export default function ItemsList() {
       </div>
 
       <div className="bg-gray-50 p-6 border-b border-gray-200">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+        {/* NOUVEAU: Header des filtres avec bouton de réinitialisation */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">
+            Filtres de recherche
+          </h3>
+          {(filter || typeFilter || rarityFilter || sourceFilter) && (
+            <button
+              onClick={clearAllFilters}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <svg
+                className="w-4 h-4 mr-1"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              Effacer tous les filtres
+            </button>
+          )}
+        </div>
+
+        {/* NOUVEAU: Grille modifiée pour 4 colonnes */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label
               htmlFor="search"
@@ -329,7 +397,84 @@ export default function ItemsList() {
               </select>
             </div>
           </div>
+
+          {/* NOUVEAU: Sélecteur de source */}
+          <div>
+            <label
+              htmlFor="source"
+              className="block mb-2 font-medium text-gray-700"
+            >
+              Source
+            </label>
+            <div className="relative">
+              <select
+                id="source"
+                name="source"
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="pl-3 pr-10 py-2 w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 appearance-none bg-white cursor-pointer"
+              >
+                <option value="">Toutes les sources</option>
+                {Array.isArray(sources) &&
+                  sources.map((source) => (
+                    <option key={source} value={source}>
+                      {source}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
         </div>
+
+        {/* NOUVEAU: Indicateurs visuels des filtres actifs */}
+        {(filter || typeFilter || rarityFilter || sourceFilter) && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {filter && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                Recherche: "{filter}"
+                <button
+                  onClick={() => setFilter("")}
+                  className="ml-1 text-indigo-600 hover:text-indigo-800"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {typeFilter && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Type: {typeFilter}
+                <button
+                  onClick={() => setTypeFilter("")}
+                  className="ml-1 text-green-600 hover:text-green-800"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {rarityFilter && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                Rareté: {rarityFilter}
+                <button
+                  onClick={() => setRarityFilter("")}
+                  className="ml-1 text-purple-600 hover:text-purple-800"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {sourceFilter && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                Source: {sourceFilter}
+                <button
+                  onClick={() => setSourceFilter("")}
+                  className="ml-1 text-orange-600 hover:text-orange-800"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="p-0">
@@ -411,6 +556,14 @@ export default function ItemsList() {
               Aucun objet trouvé. Ajustez vos filtres ou ajoutez de nouveaux
               objets.
             </p>
+            {(filter || typeFilter || rarityFilter || sourceFilter) && (
+              <button
+                onClick={clearAllFilters}
+                className="mt-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Effacer tous les filtres
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col">
